@@ -9,7 +9,7 @@
 <title>Slurp</title>
 <style>
 @font-face{font-family:'Serif Display';src:local('Georgia'),local('Times New Roman');font-weight:700;font-style:normal;}
-:root{--bg:#080c0a;--surface:#0f1a12;--surface2:#141f17;--accent:#4ade80;--warn12:#facc15;--warn14:#fb923c;--warn16:#c084fc;--warn23:#f472b6;--text:#e2f0e4;--text-dim:#4a6b50;--border:rgba(74,222,128,0.1);--border2:rgba(74,222,128,0.25);--mono:'SF Mono','Menlo','Consolas','DejaVu Sans Mono','Liberation Mono',monospace;--serif:Georgia,'Times New Roman',serif;}
+:root{--bg:#080c0a;--surface:#0f1a12;--surface2:#141f17;--accent:#4ade80;--warn12:#facc15;--warn14:#fb923c;--warn16:#c084fc;--warn24:#f472b6;--text:#e2f0e4;--text-dim:#4a6b50;--border:rgba(74,222,128,0.1);--border2:rgba(74,222,128,0.25);--mono:'SF Mono','Menlo','Consolas','DejaVu Sans Mono','Liberation Mono',monospace;--serif:Georgia,'Times New Roman',serif;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overscroll-behavior:none;}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;font-size:14px;}
@@ -54,6 +54,19 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .param-pct.mid{color:var(--warn12);}
 .param-pct.high{color:var(--accent);}
 .param-pct.over{color:var(--warn16);}
+
+.milestone-card{width:100%;margin-bottom:12px;}
+.ms-card-inner{background:linear-gradient(135deg,rgba(74,222,128,0.08),rgba(192,132,252,0.06));border:1px solid var(--border2);border-radius:18px;padding:14px 16px;}
+.ms-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:18px;text-align:center;font-size:0.78rem;color:var(--text-dim);}
+.ms-achieved{margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(74,222,128,0.15);}
+.ms-achieved-title{font-size:0.84rem;font-weight:600;color:var(--accent);margin-bottom:5px;}
+.ms-achieved-desc{font-size:0.7rem;color:var(--text);line-height:1.5;}
+.ms-next-title{font-size:0.78rem;font-weight:500;color:var(--warn16);margin-bottom:7px;}
+.ms-next-bar-wrap{background:rgba(255,255,255,0.06);border-radius:100px;height:6px;overflow:hidden;margin-bottom:5px;}
+.ms-next-bar{height:100%;background:linear-gradient(90deg,#fb923c,#facc15,#4ade80);border-radius:100px;transition:width 0.6s ease;}
+.ms-next-stats{font-size:0.62rem;color:var(--text-dim);margin-bottom:7px;letter-spacing:0.5px;}
+.ms-next-desc{font-size:0.68rem;color:var(--text);line-height:1.5;}
+.ms-footer{margin-top:11px;padding-top:9px;border-top:1px solid var(--border);font-size:0.6rem;color:var(--text-dim);text-align:center;letter-spacing:0.5px;}
 .mpill{flex:1;padding:10px 4px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.02);text-align:center;transition:all 0.4s;cursor:pointer;}
 .mpill-icon{font-size:1.4rem;display:block;margin-bottom:4px;filter:grayscale(1);opacity:0.3;transition:all 0.4s;}
 .mpill-label{font-size:0.92rem;font-weight:500;color:var(--text-dim);display:block;transition:color 0.4s;}
@@ -64,8 +77,8 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .mpill.hit14 .mpill-icon{filter:none;opacity:1;}.mpill.hit14 .mpill-label{color:var(--warn14);}
 .mpill.hit16{border-color:rgba(192,132,252,0.5);background:rgba(192,132,252,0.08);box-shadow:0 0 20px rgba(192,132,252,0.12);}
 .mpill.hit16 .mpill-icon{filter:none;opacity:1;}.mpill.hit16 .mpill-label{color:var(--warn16);}
-.mpill.hit23{border-color:rgba(244,114,182,0.5);background:rgba(244,114,182,0.08);box-shadow:0 0 20px rgba(244,114,182,0.15);}
-.mpill.hit23 .mpill-icon{filter:none;opacity:1;}.mpill.hit23 .mpill-label{color:var(--warn23);}
+.mpill.hit24{border-color:rgba(244,114,182,0.5);background:rgba(244,114,182,0.08);box-shadow:0 0 20px rgba(244,114,182,0.15);}
+.mpill.hit24 .mpill-icon{filter:none;opacity:1;}.mpill.hit24 .mpill-label{color:var(--warn24);}
 
 .mpill-detail{display:none;width:100%;background:#0f1f14;border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
 .mpill-detail.show{display:block;}
@@ -113,10 +126,10 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .stat-label{font-size:0.74rem;color:var(--text-dim);min-width:32px;flex-shrink:0;}
 .stat-bar-wrap{flex:1;background:rgba(255,255,255,0.05);border-radius:100px;height:7px;overflow:hidden;}
 .stat-bar{height:100%;border-radius:100px;transition:width 0.6s ease;}
-.stat-bar.b23{background:var(--warn23);}.stat-bar.b16{background:var(--warn16);}.stat-bar.b14{background:var(--warn14);}.stat-bar.b12{background:var(--warn12);}.stat-bar.b0{background:rgba(255,255,255,0.15);}
+.stat-bar.b24{background:var(--warn24);}.stat-bar.b16{background:var(--warn16);}.stat-bar.b14{background:var(--warn14);}.stat-bar.b12{background:var(--warn12);}.stat-bar.b0{background:rgba(255,255,255,0.15);}
 .stat-pct{font-size:0.74rem;font-weight:500;min-width:34px;text-align:right;flex-shrink:0;}
 .stat-target{font-size:0.5rem;color:var(--text-dim);min-width:28px;text-align:right;flex-shrink:0;opacity:0.6;}
-.stat-pct.c23{color:var(--warn23);}.stat-pct.c16{color:var(--warn16);}.stat-pct.c14{color:var(--warn14);}.stat-pct.c12{color:var(--warn12);}.stat-pct.c0{color:var(--text-dim);}
+.stat-pct.c24{color:var(--warn24);}.stat-pct.c16{color:var(--warn16);}.stat-pct.c14{color:var(--warn14);}.stat-pct.c12{color:var(--warn12);}.stat-pct.c0{color:var(--text-dim);}
 
 .proc-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;}
 .proc-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
@@ -152,6 +165,21 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .plan-prog-fill{height:100%;background:var(--accent);border-radius:100px;}
 .plan-prog-pct{font-size:0.62rem;color:var(--accent);min-width:30px;text-align:right;}
 
+.meas-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 14px;margin-bottom:8px;transition:all 0.2s;}
+.meas-card.filled{border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.04);}
+.meas-card.due{border-color:rgba(251,146,60,0.4);background:rgba(251,146,60,0.05);}
+.meas-card:active{opacity:0.7;}
+.meas-card-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.meas-status{font-size:1rem;}
+.meas-label{font-size:0.84rem;font-weight:500;color:var(--text);flex:1;}
+.meas-date{font-size:0.62rem;color:var(--text-dim);letter-spacing:0.5px;}
+.meas-card-status{font-size:0.66rem;color:var(--text-dim);margin-bottom:4px;}
+.meas-values{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.meas-val{font-size:0.7rem;color:var(--text-dim);}
+.meas-val strong{color:var(--text);font-weight:500;}
+.meas-input-row{margin-bottom:11px;}
+.meas-input-label{display:block;font-size:0.7rem;color:var(--text-dim);margin-bottom:5px;font-weight:500;}
+
 .hitem{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;}
 .hitem-date{font-size:0.8rem;color:var(--text-dim);margin-bottom:3px;}
 .hitem-times{font-size:0.8rem;color:var(--text);}
@@ -160,7 +188,7 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .hitem-icon{font-size:1rem;}
 .hitem-hours{font-size:1rem;font-weight:500;color:var(--accent);}
 .hbadge{font-size:0.48rem;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:100px;display:inline-block;}
-.hb23{background:rgba(244,114,182,0.12);color:var(--warn23);}.hb16{background:rgba(192,132,252,0.12);color:var(--warn16);}.hb14{background:rgba(251,146,60,0.12);color:var(--warn14);}.hb12{background:rgba(250,204,21,0.12);color:var(--warn12);}.hb0{background:rgba(255,255,255,0.05);color:var(--text-dim);}
+.hb24{background:rgba(244,114,182,0.12);color:var(--warn24);}.hb16{background:rgba(192,132,252,0.12);color:var(--warn16);}.hb14{background:rgba(251,146,60,0.12);color:var(--warn14);}.hb12{background:rgba(250,204,21,0.12);color:var(--warn12);}.hb0{background:rgba(255,255,255,0.05);color:var(--text-dim);}
 .hitem-btns{display:flex;flex-direction:column;gap:5px;}
 .hitem-edit{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-family:var(--mono);font-size:0.7rem;color:var(--text-dim);cursor:pointer;}
 .hitem-edit:active{opacity:0.6;}
@@ -185,7 +213,7 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .toast.t12{border-color:rgba(250,204,21,0.5);}
 .toast.t14{border-color:rgba(251,146,60,0.5);}
 .toast.t16{border-color:rgba(192,132,252,0.5);}
-.toast.t23{border-color:rgba(244,114,182,0.5);}
+.toast.t24{border-color:rgba(244,114,182,0.5);}
 .toast.terr{border-color:rgba(255,80,80,0.5);}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;}
@@ -260,6 +288,21 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
   </div>
 </div>
 
+<!-- MEASUREMENTS MODAL -->
+<div class="modal-overlay" id="measModal" onclick="if(event.target===this)closeModal('measModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="measModalTitle">Measurements</div>
+    <div class="modal-sub" id="measModalSub"></div>
+    <input type="hidden" id="measDaysKey">
+    <div id="measFormBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('measModal')">Cancel</button>
+      <button class="modal-btn save" onclick="saveMeasurement()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOP -->
 <div class="top-section">
   <div class="logo"><h1>Slurp</h1><em>fasting tracker</em></div>
@@ -267,7 +310,7 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
   <div class="big-timer" id="bigTimer">00:00:00</div>
   <div class="timer-sub" id="timerSub">tap the button to begin your fast</div>
 
-  <div id="paramProgress" class="param-progress"></div>
+  <div id="milestoneCard" class="milestone-card"></div>
 
   <div class="info-row">
     <div class="icard"><div class="icard-label">Started</div><div class="icard-val" id="startVal">—</div></div>
@@ -296,12 +339,14 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
       <button class="tab active" id="tabBreak" onclick="setTab('break')">Fasts</button>
       <button class="tab" id="tabProc" onclick="setTab('proc')">Progress</button>
       <button class="tab" id="tabExc" onclick="setTab('exc')">Exceptions</button>
+      <button class="tab" id="tabMeas" onclick="setTab('meas')">Measurements</button>
       <button class="tab" id="tabPlan" onclick="setTab('plan')">12mo Plan</button>
       <button class="tab" id="tabList" onclick="setTab('list')">List</button>
     </div>
     <div id="statsPanel"></div>
     <div id="procPanel"></div>
     <div id="excPanel"></div>
+    <div id="measPanel"></div>
     <div id="planPanel"></div>
     <div id="histList"><div class="empty-msg">No fasts yet.<br>Start your first fast above.</div></div>
     <div class="history-footer">
@@ -364,7 +409,7 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <script>
-var fastStart=null,ticker=null,notified={12:false,14:false,16:false,23:false};
+var fastStart=null,ticker=null,notified={12:false,14:false,16:false,24:false};
 var historyOpen=false,activeDetail=null,activeTab='break';
 var editMode=null,editIndex=null;
 var confirmCallback=null;
@@ -373,7 +418,7 @@ var MS={
   12:{id:'p12',cls:'hit12',icon:'🌙',title:'Slurp — 12 Hours',body:'Fat ox 50% · Autophagy still 0%',toast:'t12'},
   14:{id:'p14',cls:'hit14',icon:'🔥',title:'Slurp — 14 Hours',body:'Fat ox 65% · Autophagy still 2%',toast:'t14'},
   16:{id:'p16',cls:'hit16',icon:'⭐',title:'Slurp — 16 Hours!',body:'Autophagy threshold crossed (5%) · GH 10%',toast:'t16'},
-  23:{id:'p23',cls:'hit23',icon:'🔮',title:'Slurp — 23 Hours!',body:'Autophagy 59% · GH 62% · Ketones 0.9 mmol/L',toast:'t23'}
+  24:{id:'p24',cls:'hit24',icon:'🔮',title:'Slurp — 24 Hours!',body:'Autophagy ~65% · GH ~70% · Ketones ~1 mmol/L',toast:'t24'}
 };
 
 // === ACTIVATION CURVES (research-grounded) ===
@@ -526,23 +571,17 @@ function deleteException(idx){
   showToast('🗑️','Exception removed','tok');
 }
 
-function renderParamProgress(){
-  var pp=document.getElementById('paramProgress');
-  if(!pp)return;
+// Build the parameter progress HTML (used inside procPanel now)
+function buildParamProgressHTML(){
   var history=getHistory();
   var exceptions=getExceptions();
-  
-  // Day of current calendar month
   var now=new Date();
   var dayOfMonth=now.getDate();
   var daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  
-  // Get fasts and exceptions in current calendar month
   var monthStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
   var fasts=history.filter(function(f){return f.end>=monthStart;});
   var excs=exceptions.filter(function(e){return e.timestamp>=monthStart;});
   
-  // Compute accumulated work for each parameter
   var actuals={};
   PROCESSES.forEach(function(p){actuals[p.key]=0;});
   fasts.forEach(function(f){
@@ -550,14 +589,12 @@ function renderParamProgress(){
       actuals[p.key]+=integrateActivation(p.fn,f.hours);
     });
   });
-  // Add active fast progress (live tick during ongoing fast)
   if(fastStart){
     var activeHours=(Date.now()-fastStart)/3600000;
     PROCESSES.forEach(function(p){
       actuals[p.key]+=integrateActivation(p.fn,activeHours);
     });
   }
-  // Apply exception setbacks
   excs.forEach(function(e){
     var costs=EXCEPTIONS[e.type].cost;
     PROCESSES.forEach(function(p){
@@ -565,7 +602,6 @@ function renderParamProgress(){
     });
   });
   
-  // Pro-rated target: today's expected accumulation if running 16:8
   var liveLabel=fastStart?' · live':'';
   var html='<div class="param-progress-title"><span>Month-to-date vs 16:8 plan'+liveLabel+'</span><span class="param-progress-sub">Day '+dayOfMonth+'/'+daysInMonth+' · '+fasts.length+' fasts'+(excs.length?' · '+excs.length+' exc':'')+'</span></div>';
   
@@ -578,15 +614,97 @@ function renderParamProgress(){
     var cls=pct<40?'low':(pct<70?'mid':(pct<110?'high':'over'));
     html+='<div class="param-row"><span class="param-icon">'+p.icon+'</span><span class="param-name">'+p.name+'</span><div class="param-bar-wrap"><div class="param-bar" style="width:'+barPct+'%"></div></div><span class="param-pct '+cls+'">'+pct+'%</span></div>';
   });
+  return html;
+}
+
+// Render the milestone card at top (always visible)
+function renderMilestoneCard(){
+  var card=document.getElementById('milestoneCard');
+  if(!card)return;
+  var history=getHistory();
+  var exceptions=getExceptions();
   
-  pp.innerHTML=html;
+  if(!history.length){
+    card.innerHTML='<div class="ms-empty">Start your first fast to begin tracking your 12-month progress.</div>';
+    return;
+  }
+  
+  // Total accumulated autophagy (the most threshold-gated, hardest to fake metric)
+  var totalAutophagy=0;
+  history.forEach(function(f){
+    totalAutophagy+=integrateActivation(actAutophagy,f.hours);
+  });
+  if(fastStart){
+    totalAutophagy+=integrateActivation(actAutophagy,(Date.now()-fastStart)/3600000);
+  }
+  exceptions.forEach(function(e){
+    totalAutophagy-=EXCEPTIONS[e.type].cost.autophagy;
+  });
+  totalAutophagy=Math.max(0,totalAutophagy);
+  
+  // Plan-equivalent months reached (300 autophagy units = 1 month of 16:8)
+  var monthsEquivalent=totalAutophagy/300;
+  
+  // Calendar time tracked
+  var firstFast=history[history.length-1];
+  var actualDays=(Date.now()-firstFast.start)/86400000;
+  var actualMonths=actualDays/30;
+  
+  // Find current and next milestone
+  var lastReached=null;
+  var nextTarget=null;
+  for(var i=0;i<PLAN_MILESTONES.length;i++){
+    var m=PLAN_MILESTONES[i];
+    if(monthsEquivalent>=m.month){
+      lastReached=m;
+    } else if(!nextTarget){
+      nextTarget=m;
+    }
+  }
+  
+  var html='<div class="ms-card-inner">';
+  
+  if(lastReached){
+    html+='<div class="ms-achieved"><div class="ms-achieved-title">✅ Month '+lastReached.month+' milestone reached</div><div class="ms-achieved-desc">'+lastReached.desc+'</div></div>';
+  }
+  
+  if(nextTarget){
+    var pct=Math.round(monthsEquivalent/nextTarget.month*100);
+    var pctCapped=Math.min(100,pct);
+    html+='<div class="ms-next"><div class="ms-next-title">⏳ Working toward Month '+nextTarget.month+'</div>';
+    html+='<div class="ms-next-bar-wrap"><div class="ms-next-bar" style="width:'+pctCapped+'%"></div></div>';
+    html+='<div class="ms-next-stats">'+pct+'% · '+monthsEquivalent.toFixed(1)+' of '+nextTarget.month+' plan-months delivered</div>';
+    html+='<div class="ms-next-desc">'+nextTarget.desc+'</div></div>';
+  } else if(lastReached) {
+    html+='<div class="ms-next"><div class="ms-next-title">🎉 All 12-month milestones reached</div><div class="ms-next-desc">You\'re in maintenance phase. Keep going.</div></div>';
+  }
+  
+  // Footer stats
+  var rateStr='';
+  if(actualMonths>0.1){
+    var rate=monthsEquivalent/actualMonths*100;
+    rateStr='Rate: '+Math.round(rate)+'% of plan';
+  }
+  html+='<div class="ms-footer">📅 '+actualMonths.toFixed(1)+' months tracked · '+monthsEquivalent.toFixed(1)+' plan-months delivered'+(rateStr?' · '+rateStr:'')+'</div>';
+  
+  html+='</div>';
+  card.innerHTML=html;
+}
+
+// Backward-compatible: renderParamProgress now just renders the milestone card and refreshes proc panel if visible
+function renderParamProgress(){
+  renderMilestoneCard();
+  // Also refresh proc panel if currently visible
+  if(document.getElementById('procPanel')&&document.getElementById('procPanel').style.display!=='none'){
+    renderProcessPanel(getHistory(),getExceptions());
+  }
 }
 
 function pad(n){return String(n).padStart(2,'0');}
 function fmt(d){return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});}
 function fmtDate(d){return d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});}
 function dayFloor(d){var x=new Date(d);x.setHours(0,0,0,0);return x;}
-function msIcon(h){if(h>=23)return'🔮';if(h>=16)return'⭐';if(h>=14)return'🔥';if(h>=12)return'🌙';return'💤';}
+function msIcon(h){if(h>=24)return'🔮';if(h>=16)return'⭐';if(h>=14)return'🔥';if(h>=12)return'🌙';return'💤';}
 
 var toastTimer=null;
 function showToast(icon,msg,cls){
@@ -716,7 +834,7 @@ function saveEdit(){
     fastStart=ns;
     localStorage.setItem('slurp_start',fastStart);
     var hrs=(Date.now()-fastStart)/3600000;
-    notified={12:hrs>=12,14:hrs>=14,16:hrs>=16,23:hrs>=23};
+    notified={12:hrs>=12,14:hrs>=14,16:hrs>=16,24:hrs>=24};
     saveNotified();updateCards();tick();
     closeModal('editModal');
     showToast('✅','Start time updated','tok');
@@ -766,7 +884,7 @@ function tick(){
   document.getElementById('bigTimer').textContent=pad(h)+':'+pad(m)+':'+pad(s);
   var hrs=elapsed/3600000;
   // Notification thresholds (still useful even without pills)
-  [12,14,16,23].forEach(function(threshold){
+  [12,14,16,24].forEach(function(threshold){
     if(hrs>=threshold){
       if(!notified[threshold]){
         var ms=MS[threshold];
@@ -820,11 +938,13 @@ function setTab(tab){
   document.getElementById('tabBreak').className='tab'+(tab==='break'?' active':'');
   document.getElementById('tabProc').className='tab'+(tab==='proc'?' active':'');
   document.getElementById('tabExc').className='tab'+(tab==='exc'?' active':'');
+  document.getElementById('tabMeas').className='tab'+(tab==='meas'?' active':'');
   document.getElementById('tabPlan').className='tab'+(tab==='plan'?' active':'');
   document.getElementById('tabList').className='tab'+(tab==='list'?' active':'');
   document.getElementById('statsPanel').style.display=tab==='break'?'block':'none';
   document.getElementById('procPanel').style.display=tab==='proc'?'block':'none';
   document.getElementById('excPanel').style.display=tab==='exc'?'block':'none';
+  document.getElementById('measPanel').style.display=tab==='meas'?'block':'none';
   document.getElementById('planPanel').style.display=tab==='plan'?'block':'none';
   document.getElementById('histList').style.display=tab==='list'?'block':'none';
 }
@@ -868,7 +988,10 @@ function renderProcessPanel(history,exceptions){
   var QUARTERLY_TARGETS={};
   Object.keys(MONTHLY_TARGETS).forEach(function(k){QUARTERLY_TARGETS[k]=MONTHLY_TARGETS[k]*3;});
   
-  var html='<div class="proc-panel"><div class="stats-title">Last 30 days · '+month.nFasts+' fasts · '+month.nExcs+' exceptions</div>';
+  // Lead with month-to-date param progress (the calendar-month live view)
+  var html='<div class="proc-panel">'+buildParamProgressHTML()+'</div>';
+  
+  html+='<div class="proc-panel" style="margin-top:8px"><div class="stats-title">Last 30 days · '+month.nFasts+' fasts · '+month.nExcs+' exceptions</div>';
   PROCESSES.forEach(function(p){
     var grossV=month.gross[p.key];
     var netV=month.net[p.key];
@@ -975,6 +1098,131 @@ function renderPlanPanel(history,exceptions){
   pp.innerHTML=html;
 }
 
+// === MEASUREMENTS ===
+// Protocol started 52 days ago (relative to today). Compute protocol start as the first fast date.
+var MEASUREMENT_FIELDS=[
+  {key:'weight',label:'Weight',unit:'kg',step:'0.1'},
+  {key:'waist',label:'Waist',unit:'cm',step:'0.5'},
+  {key:'tg',label:'Triglycerides',unit:'mg/dL',step:'1'},
+  {key:'hdl',label:'HDL',unit:'mg/dL',step:'1'},
+  {key:'ldl',label:'LDL',unit:'mg/dL',step:'1'},
+  {key:'glucose',label:'Fasting glucose',unit:'mg/dL',step:'1'},
+  {key:'insulin',label:'Fasting insulin',unit:'µIU/mL',step:'0.1'},
+  {key:'hba1c',label:'HbA1c',unit:'%',step:'0.1'}
+];
+
+// Baseline values from your Feb 2026 bloods
+var MEASUREMENT_BASELINE={
+  weight:82,waist:97,tg:250,hdl:47,ldl:120,glucose:87,insulin:null,hba1c:null
+};
+
+var MEASUREMENT_TIMEPOINTS=[
+  {days:0,label:'Baseline'},
+  {days:90,label:'3 months'},
+  {days:180,label:'6 months'},
+  {days:270,label:'9 months'},
+  {days:360,label:'12 months'}
+];
+
+function getMeasurements(){return JSON.parse(localStorage.getItem('slurp_measurements')||'{}');}
+function saveMeasurements(m){localStorage.setItem('slurp_measurements',JSON.stringify(m));}
+
+function getProtocolStart(){
+  // Protocol start = oldest fast in history (or saved override)
+  var saved=localStorage.getItem('slurp_protocol_start');
+  if(saved)return parseInt(saved);
+  var h=getHistory();
+  if(!h.length)return Date.now();
+  return h[h.length-1].start;
+}
+
+function renderMeasurementsPanel(){
+  var ep=document.getElementById('measPanel');
+  var meas=getMeasurements();
+  var start=getProtocolStart();
+  var now=Date.now();
+  
+  var html='<div class="proc-panel"><div class="stats-title">Quarterly measurements</div>';
+  html+='<div class="proc-info" style="margin-bottom:12px;font-style:normal;">Record your weight, waist, and bloods at each timepoint to track real outcomes vs the 12-month plan.</div>';
+  
+  // Show each timepoint
+  MEASUREMENT_TIMEPOINTS.forEach(function(tp){
+    var dueDate=new Date(start+tp.days*86400000);
+    var daysUntil=Math.round((dueDate-now)/86400000);
+    var isOverdue=daysUntil<-7;
+    var isDue=daysUntil>=-7&&daysUntil<=14;
+    var isFuture=daysUntil>14;
+    var isPast=daysUntil<-7;
+    var hasData=meas[tp.days]&&Object.keys(meas[tp.days]).length>0;
+    
+    var statusIcon='⭕';
+    var statusText='';
+    var clickable=true;
+    if(hasData){statusIcon='✅';statusText='Recorded';}
+    else if(isDue){statusIcon='⏰';statusText='Due now ('+(daysUntil>=0?'in '+daysUntil+'d':Math.abs(daysUntil)+'d ago')+')';}
+    else if(isOverdue){statusIcon='⚠️';statusText='Overdue ('+Math.abs(daysUntil)+' days)';}
+    else if(isFuture){statusIcon='📅';statusText='In '+daysUntil+' days';clickable=false;}
+    
+    html+='<div class="meas-card'+(hasData?' filled':'')+(isDue?' due':'')+'" '+(clickable?'onclick="openMeasurement('+tp.days+')"':'')+' style="cursor:'+(clickable?'pointer':'default')+';">';
+    html+='<div class="meas-card-head"><span class="meas-status">'+statusIcon+'</span><span class="meas-label">'+tp.label+'</span><span class="meas-date">'+dueDate.toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'})+'</span></div>';
+    html+='<div class="meas-card-status">'+statusText+'</div>';
+    
+    if(hasData){
+      html+='<div class="meas-values">';
+      MEASUREMENT_FIELDS.forEach(function(f){
+        var v=meas[tp.days][f.key];
+        if(v!==undefined&&v!==null&&v!==''){
+          html+='<div class="meas-val"><span class="meas-val-label">'+f.label+':</span> <strong>'+v+' '+f.unit+'</strong></div>';
+        }
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  
+  html+='</div>';
+  ep.innerHTML=html;
+}
+
+function openMeasurement(daysKey){
+  var meas=getMeasurements();
+  var data=meas[daysKey]||{};
+  var tp=MEASUREMENT_TIMEPOINTS.find(function(t){return t.days===daysKey;});
+  
+  document.getElementById('measModalTitle').textContent=tp.label+' measurements';
+  document.getElementById('measModalSub').textContent='Fill in what you have, leave blank what you don\'t';
+  
+  var formHtml='';
+  MEASUREMENT_FIELDS.forEach(function(f){
+    var val=data[f.key]!==undefined?data[f.key]:'';
+    formHtml+='<div class="meas-input-row"><label class="meas-input-label">'+f.label+' <span style="color:var(--text-dim);font-weight:400;">('+f.unit+')</span></label><input type="number" inputmode="decimal" step="'+f.step+'" id="meas_'+f.key+'" value="'+val+'" class="time-input" style="width:100%;text-align:left;padding:11px 12px;"></div>';
+  });
+  document.getElementById('measFormBody').innerHTML=formHtml;
+  document.getElementById('measDaysKey').value=daysKey;
+  document.getElementById('measModal').classList.add('open');
+}
+
+function saveMeasurement(){
+  var daysKey=parseInt(document.getElementById('measDaysKey').value);
+  var meas=getMeasurements();
+  if(!meas[daysKey])meas[daysKey]={};
+  var anyValue=false;
+  MEASUREMENT_FIELDS.forEach(function(f){
+    var v=document.getElementById('meas_'+f.key).value;
+    if(v!==''){
+      meas[daysKey][f.key]=parseFloat(v);
+      anyValue=true;
+    } else {
+      delete meas[daysKey][f.key];
+    }
+  });
+  if(!anyValue)delete meas[daysKey];
+  saveMeasurements(meas);
+  closeModal('measModal');
+  renderMeasurementsPanel();
+  showToast('✅','Measurements saved','tok');
+}
+
 function renderHistory(){
   renderParamProgress();
   var h=getHistory();
@@ -984,25 +1232,27 @@ function renderHistory(){
   
   if(h.length>0){
     var total=h.length;
-    var n23=h.filter(function(x){return x.hours>=23;}).length;
-    var n16=h.filter(function(x){return x.hours>=16&&x.hours<23;}).length;
+    var n24=h.filter(function(x){return x.hours>=24;}).length;
+    var n16=h.filter(function(x){return x.hours>=16&&x.hours<24;}).length;
     var n14=h.filter(function(x){return x.hours>=14&&x.hours<16;}).length;
     var n12=h.filter(function(x){return x.hours>=12&&x.hours<14;}).length;
     var n0=h.filter(function(x){return x.hours<12;}).length;
     var pct=function(n){return Math.round(n/total*100);};
     sp.innerHTML='<div class="stats-panel"><div class="stats-title">breakdown · '+total+' fast'+(total===1?'':'s')+' · targets in grey</div>'+
-      '<div class="stat-row"><span class="stat-icon">🔮</span><span class="stat-label">23h+</span><div class="stat-bar-wrap"><div class="stat-bar b23" style="width:'+pct(n23)+'%"></div></div><span class="stat-pct c23">'+pct(n23)+'%</span><span class="stat-target">/ 5%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">🔮</span><span class="stat-label">24h+</span><div class="stat-bar-wrap"><div class="stat-bar b24" style="width:'+pct(n24)+'%"></div></div><span class="stat-pct c24">'+pct(n24)+'%</span><span class="stat-target">/ 5%</span></div>'+
       '<div class="stat-row"><span class="stat-icon">⭐</span><span class="stat-label">16h+</span><div class="stat-bar-wrap"><div class="stat-bar b16" style="width:'+pct(n16)+'%"></div></div><span class="stat-pct c16">'+pct(n16)+'%</span><span class="stat-target">/ 25%</span></div>'+
       '<div class="stat-row"><span class="stat-icon">🔥</span><span class="stat-label">14h+</span><div class="stat-bar-wrap"><div class="stat-bar b14" style="width:'+pct(n14)+'%"></div></div><span class="stat-pct c14">'+pct(n14)+'%</span><span class="stat-target">/ 35%</span></div>'+
       '<div class="stat-row"><span class="stat-icon">🌙</span><span class="stat-label">12h+</span><div class="stat-bar-wrap"><div class="stat-bar b12" style="width:'+pct(n12)+'%"></div></div><span class="stat-pct c12">'+pct(n12)+'%</span><span class="stat-target">/ 35%</span></div>'+
       '<div class="stat-row"><span class="stat-icon">💤</span><span class="stat-label">&lt;12h</span><div class="stat-bar-wrap"><div class="stat-bar b0" style="width:'+pct(n0)+'%"></div></div><span class="stat-pct c0">'+pct(n0)+'%</span><span class="stat-target">/ 0%</span></div></div>';
     renderProcessPanel(h,getExceptions());
     renderExceptionPanel(getExceptions());
+    renderMeasurementsPanel();
     renderPlanPanel(h,getExceptions());
   } else {
     sp.innerHTML='';
     document.getElementById('procPanel').innerHTML='';
-    renderExceptionPanel(getExceptions()); // can still log exceptions without fasts
+    renderExceptionPanel(getExceptions());
+    renderMeasurementsPanel();
     document.getElementById('planPanel').innerHTML='';
   }
   
@@ -1011,7 +1261,7 @@ function renderHistory(){
     var s=new Date(item.start),e=new Date(item.end),hrs=item.hours;
     var icon=msIcon(hrs);
     var bc='hb0',bl='Under 12h';
-    if(hrs>=23){bc='hb23';bl='23h+ 🔮';}
+    if(hrs>=24){bc='hb24';bl='24h+ 🔮';}
     else if(hrs>=16){bc='hb16';bl='16h+ ⭐';}
     else if(hrs>=14){bc='hb14';bl='14h+ 🔥';}
     else if(hrs>=12){bc='hb12';bl='12h+ 🌙';}
@@ -1129,8 +1379,9 @@ function savePastException(){
 function exportData(){
   var h=getHistory();
   var e=getExceptions();
-  if(!h.length&&!e.length){showToast('⚠️','No data to export','terr');return;}
-  var data={version:3,exported:new Date().toISOString(),fasts:h,exceptions:e};
+  var m=getMeasurements();
+  if(!h.length&&!e.length&&Object.keys(m).length===0){showToast('⚠️','No data to export','terr');return;}
+  var data={version:4,exported:new Date().toISOString(),fasts:h,exceptions:e,measurements:m};
   var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
@@ -1140,7 +1391,7 @@ function exportData(){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('💾','Backup saved ('+h.length+' fasts, '+e.length+' exceptions)','tok');
+  showToast('💾','Backup saved ('+h.length+' fasts, '+e.length+' exceptions, '+Object.keys(m).length+' measurements)','tok');
 }
 
 function importData(){
@@ -1187,6 +1438,15 @@ function handleImport(event){
       });
       saveExceptions(existingExc);
       
+      // Import measurements (overwrites existing, since they're per-timepoint)
+      if(data.measurements&&typeof data.measurements==='object'){
+        var existingMeas=getMeasurements();
+        Object.keys(data.measurements).forEach(function(k){
+          existingMeas[k]=data.measurements[k];
+        });
+        saveMeasurements(existingMeas);
+      }
+      
       renderHistory();
       showToast('✅','Imported '+added+' fasts, '+addedExc+' exceptions','tok');
     } catch(err){
@@ -1200,7 +1460,7 @@ function handleImport(event){
 function toggleFast(){
   if(!fastStart){
     fastStart=Date.now();
-    notified={12:false,14:false,16:false,23:false};
+    notified={12:false,14:false,16:false,24:false};
     localStorage.setItem('slurp_start',fastStart);
     saveNotified();
     document.getElementById('recBanner').classList.add('hidden');
@@ -1219,7 +1479,7 @@ function toggleFast(){
 
 function stopFast(){
   clearInterval(ticker);ticker=null;
-  fastStart=null;notified={12:false,14:false,16:false,23:false};
+  fastStart=null;notified={12:false,14:false,16:false,24:false};
   localStorage.removeItem('slurp_start');
   localStorage.removeItem('slurp_notified');
   setEatingUI();renderHistory();
@@ -1254,8 +1514,8 @@ function setEatingUI(){
 // Migration: handle old "13h" notification key gracefully
 function migrateNotified(){
   var sn=JSON.parse(localStorage.getItem('slurp_notified')||'{}');
-  // Old keys: 12,13,14,16. New keys: 12,14,16,23. Just preserve what we can.
-  notified={12:!!sn[12],14:!!sn[14],16:!!sn[16],23:!!sn[23]};
+  // Old keys: 12,13,14,16. New keys: 12,14,16,24. Just preserve what we can.
+  notified={12:!!sn[12],14:!!sn[14],16:!!sn[16],24:!!sn[24]};
 }
 
 function loadState(){
