@@ -56,17 +56,27 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .param-pct.over{color:var(--warn16);}
 
 .milestone-card{width:100%;margin-bottom:12px;}
-.ms-card-inner{background:linear-gradient(135deg,rgba(74,222,128,0.08),rgba(192,132,252,0.06));border:1px solid var(--border2);border-radius:18px;padding:14px 16px;}
-.ms-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:18px;text-align:center;font-size:0.78rem;color:var(--text-dim);}
-.ms-achieved{margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(74,222,128,0.15);}
-.ms-achieved-title{font-size:0.84rem;font-weight:600;color:var(--accent);margin-bottom:5px;}
-.ms-achieved-desc{font-size:0.7rem;color:var(--text);line-height:1.5;}
-.ms-next-title{font-size:0.78rem;font-weight:500;color:var(--warn16);margin-bottom:7px;}
-.ms-next-bar-wrap{background:rgba(255,255,255,0.06);border-radius:100px;height:6px;overflow:hidden;margin-bottom:5px;}
-.ms-next-bar{height:100%;background:linear-gradient(90deg,#fb923c,#facc15,#4ade80);border-radius:100px;transition:width 0.6s ease;}
-.ms-next-stats{font-size:0.62rem;color:var(--text-dim);margin-bottom:7px;letter-spacing:0.5px;}
-.ms-next-desc{font-size:0.68rem;color:var(--text);line-height:1.5;}
-.ms-footer{margin-top:11px;padding-top:9px;border-top:1px solid var(--border);font-size:0.6rem;color:var(--text-dim);text-align:center;letter-spacing:0.5px;}
+.ms-card-inner{background:linear-gradient(135deg,rgba(74,222,128,0.06),rgba(192,132,252,0.04));border:1px solid var(--border2);border-radius:18px;padding:16px 18px;}
+.ms-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:18px;text-align:center;font-size:0.86rem;color:var(--text-dim);}
+.ms-day-count{font-size:1.0rem;font-weight:600;color:var(--text);margin-bottom:8px;text-align:center;}
+.ms-achieved-mini{font-size:0.84rem;color:var(--accent);margin-bottom:10px;text-align:center;font-weight:500;}
+.ms-target-header{font-size:0.94rem;color:var(--text);margin-bottom:14px;text-align:center;}
+.ms-target-header strong{color:var(--warn16);}
+.ms-param-row{margin-bottom:10px;}
+.ms-param-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.ms-param-icon{font-size:1.05rem;}
+.ms-param-name{font-size:0.84rem;color:var(--text);flex:1;font-weight:500;}
+.ms-param-pct{font-size:0.86rem;font-weight:600;font-variant-numeric:tabular-nums;}
+.ms-param-pct.ahead{color:var(--accent);}
+.ms-param-pct.behind{color:var(--warn14);}
+.ms-param-bar-wrap{position:relative;background:rgba(255,255,255,0.06);border-radius:100px;height:9px;overflow:visible;}
+.ms-param-bar{height:100%;background:linear-gradient(90deg,#fb923c,#facc15,#4ade80);border-radius:100px;transition:width 0.6s ease;}
+.ms-pace-line{position:absolute;top:-3px;width:2px;height:15px;background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.6);border-radius:1px;transition:left 0.6s ease;}
+.ms-pace-text{font-size:0.76rem;color:var(--text-dim);text-align:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border);}
+.ms-legend{font-size:0.66rem;color:var(--text-dim);text-align:center;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.ms-legend-line{display:inline-block;width:2px;height:11px;background:#ef4444;border-radius:1px;}
+.ms-target-desc{font-size:0.78rem;color:var(--text);line-height:1.5;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+.ms-target-desc strong{color:var(--warn16);}
 .mpill{flex:1;padding:10px 4px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.02);text-align:center;transition:all 0.4s;cursor:pointer;}
 .mpill-icon{font-size:1.4rem;display:block;margin-bottom:4px;filter:grayscale(1);opacity:0.3;transition:all 0.4s;}
 .mpill-label{font-size:0.92rem;font-weight:500;color:var(--text-dim);display:block;transition:color 0.4s;}
@@ -629,63 +639,147 @@ function renderMilestoneCard(){
     return;
   }
   
-  // Total accumulated autophagy (the most threshold-gated, hardest to fake metric)
-  var totalAutophagy=0;
+  // Compute accumulated work for each parameter (with active fast + exception setbacks)
+  var totals={};
+  PROCESSES.forEach(function(p){totals[p.key]=0;});
   history.forEach(function(f){
-    totalAutophagy+=integrateActivation(actAutophagy,f.hours);
+    PROCESSES.forEach(function(p){
+      totals[p.key]+=integrateActivation(p.fn,f.hours);
+    });
   });
   if(fastStart){
-    totalAutophagy+=integrateActivation(actAutophagy,(Date.now()-fastStart)/3600000);
+    var ah=(Date.now()-fastStart)/3600000;
+    PROCESSES.forEach(function(p){
+      totals[p.key]+=integrateActivation(p.fn,ah);
+    });
   }
   exceptions.forEach(function(e){
-    totalAutophagy-=EXCEPTIONS[e.type].cost.autophagy;
+    var costs=EXCEPTIONS[e.type].cost;
+    PROCESSES.forEach(function(p){
+      totals[p.key]=Math.max(0,totals[p.key]-(costs[p.key]||0));
+    });
   });
-  totalAutophagy=Math.max(0,totalAutophagy);
   
-  // Plan-equivalent months reached (300 autophagy units = 1 month of 16:8)
-  var monthsEquivalent=totalAutophagy/300;
-  
-  // Calendar time tracked
+  // Calendar days tracked
   var firstFast=history[history.length-1];
   var actualDays=(Date.now()-firstFast.start)/86400000;
-  var actualMonths=actualDays/30;
   
-  // Find current and next milestone
-  var lastReached=null;
-  var nextTarget=null;
-  for(var i=0;i<PLAN_MILESTONES.length;i++){
-    var m=PLAN_MILESTONES[i];
-    if(monthsEquivalent>=m.month){
-      lastReached=m;
-    } else if(!nextTarget){
-      nextTarget=m;
+  // Find current and next milestone (using autophagy as the gating metric)
+  // Autophagy thresholds: 300=1mo, 900=3mo, 1800=6mo, 2700=9mo, 3600=12mo
+  var milestoneMonths=[3,6,9,12];
+  var nextMs=null;
+  var lastMs=null;
+  for(var i=0;i<milestoneMonths.length;i++){
+    var monthN=milestoneMonths[i];
+    var thresholdAuto=monthN*300;
+    if(totals.autophagy>=thresholdAuto){
+      lastMs=monthN;
+    } else if(!nextMs){
+      nextMs=monthN;
     }
   }
   
+  // Find descriptor
+  var nextDesc=null;
+  if(nextMs){
+    for(var j=0;j<PLAN_MILESTONES.length;j++){
+      if(PLAN_MILESTONES[j].month===nextMs){nextDesc=PLAN_MILESTONES[j].desc;break;}
+    }
+  }
+  
+  // Build display
   var html='<div class="ms-card-inner">';
   
-  if(lastReached){
-    html+='<div class="ms-achieved"><div class="ms-achieved-title">✅ Month '+lastReached.month+' milestone reached</div><div class="ms-achieved-desc">'+lastReached.desc+'</div></div>';
+  // Header: day count
+  html+='<div class="ms-day-count">Day '+Math.floor(actualDays)+' of your protocol</div>';
+  
+  if(lastMs){
+    html+='<div class="ms-achieved-mini">✅ '+lastMs+'-month milestone reached</div>';
   }
   
-  if(nextTarget){
-    var pct=Math.round(monthsEquivalent/nextTarget.month*100);
-    var pctCapped=Math.min(100,pct);
-    html+='<div class="ms-next"><div class="ms-next-title">⏳ Working toward Month '+nextTarget.month+'</div>';
-    html+='<div class="ms-next-bar-wrap"><div class="ms-next-bar" style="width:'+pctCapped+'%"></div></div>';
-    html+='<div class="ms-next-stats">'+pct+'% · '+monthsEquivalent.toFixed(1)+' of '+nextTarget.month+' plan-months delivered</div>';
-    html+='<div class="ms-next-desc">'+nextTarget.desc+'</div></div>';
-  } else if(lastReached) {
-    html+='<div class="ms-next"><div class="ms-next-title">🎉 All 12-month milestones reached</div><div class="ms-next-desc">You\'re in maintenance phase. Keep going.</div></div>';
+  if(nextMs){
+    var targetN=nextMs;
+    var targetDays=targetN*30; // calendar days for strict 16:8 to reach this
+    
+    html+='<div class="ms-target-header">🎯 Working toward <strong>'+targetN+'-month milestone</strong></div>';
+    
+    // Where would 16:8 be at the same elapsed days?
+    // 16:8 reaches the milestone at exactly day targetDays. So at day actualDays:
+    var pace1616 = Math.min(100, actualDays/targetDays*100);
+    
+    // Param bars
+    PROCESSES.forEach(function(p){
+      var actual=totals[p.key];
+      // Target for this milestone = monthN × monthly_target
+      var msTarget = MONTHLY_TARGETS[p.key]*targetN;
+      // Account for what previous milestone already covered (so the bar is for THIS slice)
+      var prevTarget = lastMs ? MONTHLY_TARGETS[p.key]*lastMs : 0;
+      var actualInSlice = Math.max(0, actual - prevTarget);
+      var sliceSize = msTarget - prevTarget;
+      var pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
+      var barPct = Math.min(100, pct);
+      
+      // Where would 16:8 be in this slice?
+      var pace16Slice;
+      if(lastMs){
+        // We're in the slice between milestones - what fraction of slice has elapsed?
+        var sliceStartDay = lastMs*30;
+        var sliceLengthDays = (targetN-lastMs)*30;
+        var elapsedInSlice = actualDays - sliceStartDay;
+        pace16Slice = Math.min(100, Math.max(0, elapsedInSlice/sliceLengthDays*100));
+      } else {
+        pace16Slice = Math.min(100, actualDays/targetDays*100);
+      }
+      
+      var pctClass=pct>=pace16Slice?'ahead':'behind';
+      
+      html+='<div class="ms-param-row">';
+      html+='<div class="ms-param-head"><span class="ms-param-icon">'+p.icon+'</span><span class="ms-param-name">'+p.name+'</span><span class="ms-param-pct '+pctClass+'">'+pct+'%</span></div>';
+      html+='<div class="ms-param-bar-wrap">';
+      html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
+      html+='<div class="ms-pace-line" style="left:'+pace16Slice+'%" title="Strict 16:8 pace"></div>';
+      html+='</div>';
+      html+='</div>';
+    });
+    
+    // Pace estimate
+    var avgPct=0;
+    PROCESSES.forEach(function(p){
+      var actual=totals[p.key];
+      var msTarget = MONTHLY_TARGETS[p.key]*targetN;
+      var prevTarget = lastMs ? MONTHLY_TARGETS[p.key]*lastMs : 0;
+      var actualInSlice = Math.max(0, actual - prevTarget);
+      var sliceSize = msTarget - prevTarget;
+      avgPct += sliceSize>0 ? actualInSlice/sliceSize*100 : 0;
+    });
+    avgPct /= PROCESSES.length;
+    
+    var paceText='';
+    if(avgPct>0&&avgPct<100){
+      // Estimate days remaining to reach milestone at current rate
+      var remaining = 100-avgPct;
+      var sliceLengthDays = lastMs ? (targetN-lastMs)*30 : targetDays;
+      var sliceStartDay = lastMs ? lastMs*30 : 0;
+      var daysElapsedInSlice = Math.max(1, actualDays-sliceStartDay);
+      var rate = avgPct/daysElapsedInSlice; // pct per day
+      var daysToTarget = rate>0 ? remaining/rate : 999;
+      var totalDaysToReach = Math.round(actualDays + daysToTarget);
+      paceText='At current rate: milestone in ~'+Math.round(daysToTarget)+' more days (day '+totalDaysToReach+')';
+    }
+    
+    if(paceText){
+      html+='<div class="ms-pace-text">'+paceText+'</div>';
+    }
+    
+    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = where strict 16:8 would be today</div>';
+    
+    if(nextDesc){
+      html+='<div class="ms-target-desc"><strong>When reached:</strong> '+nextDesc+'</div>';
+    }
+  } else if(lastMs===12){
+    html+='<div class="ms-target-header">🎉 All 12-month milestones reached</div>';
+    html+='<div class="ms-target-desc">You\'re in maintenance phase. Keep going.</div>';
   }
-  
-  // Footer stats
-  var rateStr='';
-  if(actualMonths>0.1){
-    var rate=monthsEquivalent/actualMonths*100;
-    rateStr='Rate: '+Math.round(rate)+'% of plan';
-  }
-  html+='<div class="ms-footer">📅 '+actualMonths.toFixed(1)+' months tracked · '+monthsEquivalent.toFixed(1)+' plan-months delivered'+(rateStr?' · '+rateStr:'')+'</div>';
   
   html+='</div>';
   card.innerHTML=html;
