@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080c0a">
+<title>Slurp</title>
+<style>
+@font-face{font-family:'Serif Display';src:local('Georgia'),local('Times New Roman');font-weight:700;font-style:normal;}
+:root{--bg:#080c0a;--surface:#0f1a12;--surface2:#141f17;--accent:#4ade80;--warn12:#facc15;--warn14:#fb923c;--warn16:#c084fc;--warn24:#f472b6;--text:#e2f0e4;--text-dim:#4a6b50;--border:rgba(74,222,128,0.1);--border2:rgba(74,222,128,0.25);--mono:'SF Mono','Menlo','Consolas','DejaVu Sans Mono','Liberation Mono',monospace;--serif:Georgia,'Times New Roman',serif;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overscroll-behavior:none;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;font-size:14px;}
+body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-50%);width:100vw;height:70vh;background:radial-gradient(ellipse,rgba(74,222,128,0.07) 0%,transparent 65%);pointer-events:none;z-index:0;}
+
+.rec-banner{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:1px solid rgba(192,132,252,0.25);padding:13px 16px;display:flex;align-items:center;gap:12px;position:relative;z-index:10;}
+.rec-banner.hidden{display:none;}
+.rec-icon{font-size:1.3rem;flex-shrink:0;}
+.rec-text{flex:1;}
+.rec-text strong{display:block;font-size:0.72rem;color:#a78bfa;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px;font-family:var(--mono);}
+.rec-text span{font-size:1.0rem;color:var(--text);font-weight:500;}
+.rec-dismiss{background:none;border:none;color:var(--text-dim);font-size:1.1rem;cursor:pointer;padding:6px;flex-shrink:0;}
+
+.top-section{flex:1;display:flex;flex-direction:column;align-items:center;padding:28px 20px 16px;position:relative;z-index:1;}
+.logo{text-align:center;margin-bottom:18px;}
+.logo h1{font-family:var(--serif);font-size:2.6rem;font-weight:700;color:var(--accent);letter-spacing:-1px;text-shadow:0 0 40px rgba(74,222,128,0.5);line-height:1;}
+.logo em{font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--text-dim);letter-spacing:3px;display:block;margin-top:4px;}
+
+.status-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;border-radius:100px;font-size:0.72rem;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;margin-bottom:18px;transition:all 0.4s;}
+.status-pill.fasting{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.35);color:var(--accent);}
+.status-pill.eating{background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);color:#fb923c;}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.big-timer{font-size:clamp(3.2rem,15vw,5rem);font-weight:300;letter-spacing:-3px;color:var(--text-dim);font-variant-numeric:tabular-nums;line-height:1;transition:color 0.5s,text-shadow 0.5s;}
+.big-timer.active{color:var(--text);text-shadow:0 0 30px rgba(74,222,128,0.2);}
+.timer-sub{text-align:center;font-size:0.8rem;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;margin:6px 0 16px;}
+
+.milestones{display:flex;gap:6px;margin-bottom:14px;width:100%;}
+
+.param-progress{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:12px;}
+.param-progress-title{font-size:0.62rem;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline;}
+.param-progress-sub{font-size:0.6rem;color:var(--text-dim);font-weight:400;text-transform:none;letter-spacing:0;}
+.param-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.param-row:last-child{margin-bottom:0;}
+.param-icon{font-size:0.95rem;width:18px;text-align:center;flex-shrink:0;}
+.param-name{font-size:0.7rem;color:var(--text);min-width:80px;}
+.param-bar-wrap{flex:1;background:rgba(255,255,255,0.04);border-radius:100px;height:6px;overflow:hidden;}
+.param-bar{height:100%;border-radius:100px;background:linear-gradient(90deg,#fb923c 0%,#facc15 50%,#4ade80 100%);transition:width 0.6s ease;}
+.param-pct{font-size:0.72rem;font-weight:500;color:var(--accent);min-width:38px;text-align:right;font-variant-numeric:tabular-nums;}
+.param-pct.low{color:var(--warn14);}
+.param-pct.mid{color:var(--warn12);}
+.param-pct.high{color:var(--accent);}
+.param-pct.over{color:var(--warn16);}
+
+.milestone-card{width:100%;margin-bottom:12px;}
+.ms-card-inner{background:linear-gradient(135deg,rgba(74,222,128,0.06),rgba(192,132,252,0.04));border:1px solid var(--border2);border-radius:18px;padding:16px 18px;}
+.ms-empty{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:18px;text-align:center;font-size:0.86rem;color:var(--text-dim);}
+.ms-day-count{font-size:1.0rem;font-weight:600;color:var(--text);margin-bottom:8px;text-align:center;}
+.ms-achieved-mini{font-size:0.84rem;color:var(--accent);margin-bottom:10px;text-align:center;font-weight:500;}
+.ms-target-header{font-size:0.94rem;color:var(--text);margin-bottom:14px;text-align:center;}
+.ms-target-header strong{color:var(--warn16);}
+.ms-param-row{margin-bottom:10px;}
+.ms-param-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.ms-param-icon{font-size:1.05rem;}
+.ms-param-name{font-size:0.84rem;color:var(--text);flex:1;font-weight:500;}
+.ms-param-pct{font-size:0.86rem;font-weight:600;font-variant-numeric:tabular-nums;}
+.ms-param-pct.ahead{color:var(--accent);}
+.ms-param-pct.behind{color:var(--warn14);}
+.ms-param-bar-wrap{position:relative;background:rgba(255,255,255,0.06);border-radius:100px;height:9px;overflow:visible;}
+.ms-param-bar{height:100%;background:linear-gradient(90deg,#fb923c,#facc15,#4ade80);border-radius:100px;transition:width 0.6s ease;}
+.ms-pace-line{position:absolute;top:-3px;width:2px;height:15px;background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.6);border-radius:1px;transition:left 0.6s ease;}
+.ms-pace-text{font-size:0.76rem;color:var(--text-dim);text-align:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border);}
+.ms-legend{font-size:0.66rem;color:var(--text-dim);text-align:center;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.ms-legend-line{display:inline-block;width:2px;height:11px;background:#ef4444;border-radius:1px;}
+.ms-target-desc{font-size:0.78rem;color:var(--text);line-height:1.5;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);}
+.ms-target-desc strong{color:var(--warn16);}
+.mpill{flex:1;padding:10px 4px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.02);text-align:center;transition:all 0.4s;cursor:pointer;}
+.mpill-icon{font-size:1.4rem;display:block;margin-bottom:4px;filter:grayscale(1);opacity:0.3;transition:all 0.4s;}
+.mpill-label{font-size:0.92rem;font-weight:500;color:var(--text-dim);display:block;transition:color 0.4s;}
+.mpill-desc{font-size:0.62rem;color:var(--text-dim);display:block;margin-top:3px;opacity:0.7;line-height:1.3;}
+.mpill.hit12{border-color:rgba(250,204,21,0.45);background:rgba(250,204,21,0.07);}
+.mpill.hit12 .mpill-icon{filter:none;opacity:1;}.mpill.hit12 .mpill-label{color:var(--warn12);}
+.mpill.hit14{border-color:rgba(251,146,60,0.45);background:rgba(251,146,60,0.07);}
+.mpill.hit14 .mpill-icon{filter:none;opacity:1;}.mpill.hit14 .mpill-label{color:var(--warn14);}
+.mpill.hit16{border-color:rgba(192,132,252,0.5);background:rgba(192,132,252,0.08);box-shadow:0 0 20px rgba(192,132,252,0.12);}
+.mpill.hit16 .mpill-icon{filter:none;opacity:1;}.mpill.hit16 .mpill-label{color:var(--warn16);}
+.mpill.hit24{border-color:rgba(244,114,182,0.5);background:rgba(244,114,182,0.08);box-shadow:0 0 20px rgba(244,114,182,0.15);}
+.mpill.hit24 .mpill-icon{filter:none;opacity:1;}.mpill.hit24 .mpill-label{color:var(--warn24);}
+
+.mpill-detail{display:none;width:100%;background:#0f1f14;border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+.mpill-detail.show{display:block;}
+.mpill-detail-title{font-size:0.84rem;font-weight:500;margin-bottom:8px;}
+.mpill-detail-body{font-size:0.74rem;color:var(--text-dim);line-height:1.8;}
+.mpill-detail-body li{margin-bottom:4px;margin-left:12px;}
+
+.info-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-bottom:10px;}
+.icard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 14px;}
+.icard-label{font-size:0.52rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.icard-val{font-size:1.0rem;color:var(--text);font-weight:500;}
+
+.adjust-row{width:100%;display:flex;gap:8px;margin-bottom:6px;}
+.adjust-btn{background:var(--surface);border:1px solid var(--border2);color:var(--accent);font-family:var(--mono);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;padding:11px 10px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;flex:1;}
+.adjust-btn:active{opacity:0.6;}
+.adjust-row.hidden{display:none;}
+
+.bottom-section{position:relative;z-index:1;padding:0 16px 40px;display:flex;flex-direction:column;gap:10px;}
+
+.thumb-btn{width:100%;min-height:80px;border-radius:22px;border:none;cursor:pointer;font-family:var(--mono);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all 0.2s;-webkit-user-select:none;user-select:none;}
+.thumb-btn:active{transform:scale(0.97);}
+.thumb-btn.start{background:linear-gradient(160deg,#14532d,#166534,#15803d);box-shadow:0 8px 32px rgba(74,222,128,0.22);}
+.thumb-btn.stop{background:linear-gradient(160deg,#431407,#7c2d12,#9a3412);box-shadow:0 8px 32px rgba(251,146,60,0.18);}
+.thumb-btn-icon{font-size:1.5rem;line-height:1;}
+.thumb-btn-label{font-size:1.0rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;color:rgba(255,255,255,0.9);}
+.thumb-btn-hint{font-size:0.8rem;letter-spacing:1px;color:rgba(255,255,255,0.35);text-transform:uppercase;}
+
+.history-toggle{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.history-toggle:active{opacity:0.7;}
+.htog-left{font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);}
+.htog-right{font-size:0.72rem;color:var(--text-dim);transition:transform 0.3s;}
+.htog-right.open{transform:rotate(180deg);}
+.history-panel{display:none;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;padding-bottom:4px;}
+.history-panel.open{display:flex;}
+
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px;}
+.tab{flex:1;padding:8px 6px;border:none;background:none;color:var(--text-dim);font-family:var(--mono);font-size:0.66rem;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-radius:10px;transition:all 0.2s;}
+.tab.active{background:rgba(74,222,128,0.1);color:var(--accent);}
+
+.stats-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;}
+.stats-title{font-size:0.7rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.stat-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.stat-row:last-child{margin-bottom:0;}
+.stat-icon{font-size:0.9rem;width:18px;text-align:center;flex-shrink:0;}
+.stat-label{font-size:0.74rem;color:var(--text-dim);min-width:32px;flex-shrink:0;}
+.stat-bar-wrap{flex:1;background:rgba(255,255,255,0.05);border-radius:100px;height:7px;overflow:hidden;}
+.stat-bar{height:100%;border-radius:100px;transition:width 0.6s ease;}
+.stat-bar.b24{background:var(--warn24);}.stat-bar.b16{background:var(--warn16);}.stat-bar.b14{background:var(--warn14);}.stat-bar.b12{background:var(--warn12);}.stat-bar.b0{background:rgba(255,255,255,0.15);}
+.stat-pct{font-size:0.74rem;font-weight:500;min-width:34px;text-align:right;flex-shrink:0;}
+.stat-target{font-size:0.5rem;color:var(--text-dim);min-width:28px;text-align:right;flex-shrink:0;opacity:0.6;}
+.stat-pct.c24{color:var(--warn24);}.stat-pct.c16{color:var(--warn16);}.stat-pct.c14{color:var(--warn14);}.stat-pct.c12{color:var(--warn12);}.stat-pct.c0{color:var(--text-dim);}
+
+.proc-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;}
+.proc-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.proc-row:last-child{margin-bottom:0;}
+.proc-name{font-size:0.74rem;color:var(--text);flex:1;}
+.proc-bar-wrap{flex:1.4;background:rgba(255,255,255,0.04);border-radius:100px;height:7px;overflow:hidden;}
+.proc-bar{height:100%;border-radius:100px;background:linear-gradient(90deg,#fb923c,#4ade80);transition:width 0.6s ease;}
+.proc-val{font-size:0.7rem;font-weight:500;color:var(--accent);min-width:48px;text-align:right;font-variant-numeric:tabular-nums;}
+.proc-info{font-size:0.62rem;color:var(--text-dim);margin-top:8px;line-height:1.5;font-style:italic;}
+
+.exc-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.exc-btn{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all 0.2s;}
+.exc-btn:active{transform:scale(0.96);background:rgba(255,80,80,0.08);}
+.exc-icon{font-size:1.6rem;}
+.exc-label{font-size:0.7rem;color:var(--text);font-weight:500;}
+.exc-cost{font-size:0.56rem;color:var(--text-dim);text-align:center;line-height:1.3;}
+
+.exc-list-item{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:9px 12px;display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+.exc-list-icon{font-size:1.1rem;}
+.exc-list-info{flex:1;}
+.exc-list-type{font-size:0.74rem;color:var(--text);}
+.exc-list-time{font-size:0.62rem;color:var(--text-dim);}
+.exc-list-del{background:none;border:none;color:rgba(255,100,100,0.5);font-size:0.84rem;cursor:pointer;padding:4px 8px;}
+
+.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:8px;}
+.plan-card.current{border-color:var(--border2);background:rgba(74,222,128,0.04);}
+.plan-month{font-size:0.66rem;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+.plan-card.current .plan-month{color:var(--accent);}
+.plan-desc{font-size:0.78rem;color:var(--text);line-height:1.5;}
+.plan-progress{display:flex;align-items:center;gap:6px;margin-top:8px;}
+.plan-prog-label{font-size:0.62rem;color:var(--text-dim);min-width:55px;}
+.plan-prog-bar{flex:1;background:rgba(255,255,255,0.05);border-radius:100px;height:5px;overflow:hidden;}
+.plan-prog-fill{height:100%;background:var(--accent);border-radius:100px;}
+.plan-prog-pct{font-size:0.62rem;color:var(--accent);min-width:30px;text-align:right;}
+
+.meas-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 14px;margin-bottom:8px;transition:all 0.2s;}
+.meas-card.filled{border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.04);}
+.meas-card.due{border-color:rgba(251,146,60,0.4);background:rgba(251,146,60,0.05);}
+.meas-card:active{opacity:0.7;}
+.meas-card-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.meas-status{font-size:1rem;}
+.meas-label{font-size:0.84rem;font-weight:500;color:var(--text);flex:1;}
+.meas-date{font-size:0.62rem;color:var(--text-dim);letter-spacing:0.5px;}
+.meas-card-status{font-size:0.66rem;color:var(--text-dim);margin-bottom:4px;}
+.meas-values{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.meas-val{font-size:0.7rem;color:var(--text-dim);}
+.meas-val strong{color:var(--text);font-weight:500;}
+.meas-input-row{margin-bottom:11px;}
+.meas-input-label{display:block;font-size:0.7rem;color:var(--text-dim);margin-bottom:5px;font-weight:500;}
+
+.hitem{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;}
+.hitem-date{font-size:0.8rem;color:var(--text-dim);margin-bottom:3px;}
+.hitem-times{font-size:0.8rem;color:var(--text);}
+.hitem-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.hitem-duration{display:flex;align-items:center;gap:5px;}
+.hitem-icon{font-size:1rem;}
+.hitem-hours{font-size:1rem;font-weight:500;color:var(--accent);}
+.hbadge{font-size:0.48rem;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:100px;display:inline-block;}
+.hb24{background:rgba(244,114,182,0.12);color:var(--warn24);}.hb16{background:rgba(192,132,252,0.12);color:var(--warn16);}.hb14{background:rgba(251,146,60,0.12);color:var(--warn14);}.hb12{background:rgba(250,204,21,0.12);color:var(--warn12);}.hb0{background:rgba(255,255,255,0.05);color:var(--text-dim);}
+.hitem-btns{display:flex;flex-direction:column;gap:5px;}
+.hitem-edit{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-family:var(--mono);font-size:0.7rem;color:var(--text-dim);cursor:pointer;}
+.hitem-edit:active{opacity:0.6;}
+.hitem-del{background:none;border:1px solid rgba(255,80,80,0.2);border-radius:8px;padding:7px 9px;font-family:var(--mono);font-size:0.7rem;color:rgba(255,100,100,0.5);cursor:pointer;}
+.hitem-del:active{opacity:0.6;}
+
+.history-footer{display:flex;flex-direction:column;gap:8px;padding-top:6px;}
+.add-manual-btn{background:var(--surface);border:1px solid var(--border2);color:var(--accent);font-family:var(--mono);font-size:0.74rem;letter-spacing:1px;text-transform:uppercase;padding:12px;border-radius:12px;cursor:pointer;}
+.add-manual-btn:active{opacity:0.6;}
+.export-btn{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);font-family:var(--mono);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;padding:10px;border-radius:12px;cursor:pointer;}
+.export-btn:active{opacity:0.6;}
+.clear-btn{background:none;border:1px solid rgba(255,80,80,0.2);color:rgba(255,100,100,0.6);font-family:var(--mono);font-size:0.66rem;letter-spacing:1px;text-transform:uppercase;padding:9px;border-radius:12px;cursor:pointer;}
+.clear-btn:active{opacity:0.6;}
+
+.empty-msg{text-align:center;padding:30px 20px;color:var(--text-dim);font-size:0.84rem;line-height:1.6;}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--surface2);border:1px solid var(--border2);padding:14px 22px;border-radius:18px;font-size:0.84rem;display:flex;align-items:center;gap:11px;max-width:90vw;z-index:200;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 12px 32px rgba(0,0,0,0.5);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast-icon{font-size:1.3rem;}
+.toast-msg{font-weight:500;}
+.toast.tok{border-color:rgba(74,222,128,0.5);}
+.toast.t12{border-color:rgba(250,204,21,0.5);}
+.toast.t14{border-color:rgba(251,146,60,0.5);}
+.toast.t16{border-color:rgba(192,132,252,0.5);}
+.toast.t24{border-color:rgba(244,114,182,0.5);}
+.toast.terr{border-color:rgba(255,80,80,0.5);}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.modal-overlay.open{opacity:1;pointer-events:auto;}
+.modal{background:var(--bg);border-top:1px solid var(--border2);border-radius:24px 24px 0 0;padding:18px 18px 28px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-handle{width:40px;height:4px;background:var(--text-dim);border-radius:2px;margin:0 auto 16px;opacity:0.4;}
+.modal-title{font-size:1.0rem;font-weight:500;text-align:center;margin-bottom:6px;}
+.modal-sub{font-size:0.72rem;color:var(--text-dim);text-align:center;margin-bottom:18px;}
+.modal-confirm-body{font-size:0.84rem;color:var(--text);text-align:center;margin-bottom:20px;line-height:1.5;}
+.time-block{margin-bottom:14px;}
+.time-block-label{font-size:0.66rem;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+.time-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;}
+.time-input{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:0.84rem;padding:13px 9px;border-radius:11px;text-align:center;-webkit-appearance:none;appearance:none;}
+.modal-actions{display:flex;gap:8px;margin-top:14px;}
+.modal-btn{flex:1;font-family:var(--mono);font-size:0.78rem;letter-spacing:1.5px;text-transform:uppercase;padding:14px;border-radius:13px;border:none;cursor:pointer;}
+.modal-btn:active{opacity:0.7;}
+.modal-btn.cancel{background:var(--surface);color:var(--text-dim);border:1px solid var(--border);}
+.modal-btn.save{background:linear-gradient(160deg,#15803d,#166534);color:#fff;}
+.modal-btn.danger{background:linear-gradient(160deg,#7c2d12,#9a3412);color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span class="toast-icon" id="tIcon">✓</span><span class="toast-msg" id="tMsg"></span></div>
+
+<!-- REC BANNER -->
+<div class="rec-banner hidden" id="recBanner">
+  <span class="rec-icon">💡</span>
+  <div class="rec-text"><strong>After a long fast</strong><span id="recMsg">Recommended fast: 12h</span></div>
+  <button class="rec-dismiss" onclick="dismissRec()">✕</button>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeModal('editModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Edit Fast</div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div class="time-block"><div class="time-block-label" id="startLabel">Fast Started</div>
+      <div class="time-row">
+        <select class="time-input" id="s_day"></select>
+        <select class="time-input" id="s_hour"></select>
+        <select class="time-input" id="s_min"></select>
+      </div>
+    </div>
+    <div class="time-block" id="endBlock"><div class="time-block-label">Fast Ended</div>
+      <div class="time-row">
+        <select class="time-input" id="e_day"></select>
+        <select class="time-input" id="e_hour"></select>
+        <select class="time-input" id="e_min"></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="modal-btn save" id="saveBtn" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal" onclick="if(event.target===this)closeModal('confirmModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="confirmTitle">Confirm</div>
+    <div class="modal-confirm-body" id="confirmBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="modal-btn save" id="confirmOkBtn" onclick="confirmOk()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEASUREMENTS MODAL -->
+<div class="modal-overlay" id="measModal" onclick="if(event.target===this)closeModal('measModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="measModalTitle">Measurements</div>
+    <div class="modal-sub" id="measModalSub"></div>
+    <input type="hidden" id="measDaysKey">
+    <div id="measFormBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('measModal')">Cancel</button>
+      <button class="modal-btn save" onclick="saveMeasurement()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOP -->
+<div class="top-section">
+  <div class="logo"><h1>Slurp</h1><em>fasting tracker</em></div>
+  <div class="status-pill eating" id="statusPill"><span class="dot"></span><span id="statusTxt">Eating Window</span></div>
+  <div class="big-timer" id="bigTimer">00:00:00</div>
+  <div class="timer-sub" id="timerSub">tap the button to begin your fast</div>
+
+  <div id="milestoneCard" class="milestone-card"></div>
+
+  <div class="info-row">
+    <div class="icard"><div class="icard-label">Started</div><div class="icard-val" id="startVal">—</div></div>
+    <div class="icard"><div class="icard-label">16h target</div><div class="icard-val" id="targetVal">—</div></div>
+  </div>
+
+  <div class="adjust-row hidden" id="adjustRow">
+    <button class="adjust-btn" onclick="openEditStart()">✏️ Fix start time</button>
+    <button class="adjust-btn" onclick="openEndModal()">✏️ Fix end time</button>
+  </div>
+</div>
+
+<!-- BOTTOM -->
+<div class="bottom-section">
+  <button class="thumb-btn start" id="mainBtn" onclick="toggleFast()">
+    <span class="thumb-btn-icon" id="btnIcon">🌙</span>
+    <span class="thumb-btn-label" id="btnLabel">Start Fasting</span>
+  </button>
+
+  <div class="history-toggle" onclick="toggleHistory()">
+    <span class="htog-left">📋 &nbsp;Past Fasts (<span id="histCount">0</span>)</span>
+    <span class="htog-right" id="histArrow">▾</span>
+  </div>
+  <div class="history-panel" id="histPanel">
+    <div class="tabs">
+      <button class="tab active" id="tabBreak" onclick="setTab('break')">Fasts</button>
+      <button class="tab" id="tabProc" onclick="setTab('proc')">Progress</button>
+      <button class="tab" id="tabExc" onclick="setTab('exc')">Exceptions</button>
+      <button class="tab" id="tabMeas" onclick="setTab('meas')">Measurements</button>
+      <button class="tab" id="tabPlan" onclick="setTab('plan')">12mo Plan</button>
+      <button class="tab" id="tabList" onclick="setTab('list')">List</button>
+    </div>
+    <div id="statsPanel"></div>
+    <div id="procPanel"></div>
+    <div id="excPanel"></div>
+    <div id="measPanel"></div>
+    <div id="planPanel"></div>
+    <div id="histList"><div class="empty-msg">No fasts yet.<br>Start your first fast above.</div></div>
+    <div class="history-footer">
+      <button class="add-manual-btn" onclick="openAddManual()">+ Add missed fast</button>
+      <button class="add-manual-btn" onclick="openAddPastException()">+ Log past exception</button>
+      <button class="export-btn" onclick="exportData()">⬇️ Export data (backup)</button>
+      <button class="export-btn" onclick="importData()">⬆️ Import data (file)</button>
+      <button class="export-btn" onclick="openPasteImport()">📋 Paste-import (from old app)</button>
+      <button class="clear-btn" onclick="askClearHistory()">Delete all</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASTE IMPORT MODAL -->
+<div class="modal-overlay" id="pasteModal" onclick="if(event.target===this)closeModal('pasteModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Paste-Import Fasts</div>
+    <div class="modal-sub">Paste the raw localStorage data from your old Slurp app here</div>
+    <textarea id="pasteData" style="width:100%;min-height:120px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px;color:var(--text);font-family:var(--mono);font-size:0.72rem;margin-bottom:12px;" placeholder='[{"start":...,"end":...,"hours":...},...]'></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('pasteModal')">Cancel</button>
+      <button class="modal-btn save" onclick="doPasteImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAST EXCEPTION MODAL -->
+<div class="modal-overlay" id="pastExcModal" onclick="if(event.target===this)closeModal('pastExcModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Log Past Exception</div>
+    <div class="modal-sub">Backfill an exception that happened earlier</div>
+    <div class="time-block">
+      <div class="time-block-label">Type</div>
+      <select class="time-input" id="pe_type" style="width:100%;padding:13px;">
+        <option value="sugar">🍰 Sugar bolus</option>
+        <option value="processed">🍕 Processed meal</option>
+        <option value="alcohol_light">🥂 1 drink</option>
+        <option value="alcohol">🍷 Alcohol (>1 drink)</option>
+        <option value="late">🌙 Late eating</option>
+        <option value="heavy">💥 Heavy day</option>
+      </select>
+    </div>
+    <div class="time-block">
+      <div class="time-block-label">When</div>
+      <div class="time-row">
+        <select class="time-input" id="pe_day"></select>
+        <select class="time-input" id="pe_hour"></select>
+        <select class="time-input" id="pe_min"></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('pastExcModal')">Cancel</button>
+      <button class="modal-btn save" onclick="savePastException()">Save</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+var fastStart=null,ticker=null,notified={12:false,14:false,16:false,24:false};
+var historyOpen=false,activeDetail=null,activeTab='break';
+var editMode=null,editIndex=null;
+var confirmCallback=null;
+
+var MS={
+  12:{id:'p12',cls:'hit12',icon:'🌙',title:'Slurp — 12 Hours',body:'Fat ox 50% · Autophagy still 0%',toast:'t12'},
+  14:{id:'p14',cls:'hit14',icon:'🔥',title:'Slurp — 14 Hours',body:'Fat ox 65% · Autophagy still 2%',toast:'t14'},
+  16:{id:'p16',cls:'hit16',icon:'⭐',title:'Slurp — 16 Hours!',body:'Autophagy threshold crossed (5%) · GH 10%',toast:'t16'},
+  24:{id:'p24',cls:'hit24',icon:'🔮',title:'Slurp — 24 Hours!',body:'Autophagy ~65% · GH ~70% · Ketones ~1 mmol/L',toast:'t24'}
+};
+
+// === ACTIVATION CURVES (research-grounded) ===
+// Returns % activation at given clock fast hours
+function actAutophagy(h){
+  if(h<12)return 0;
+  if(h<16)return 5*(h-12)/4;
+  if(h<20)return 5+35*(h-16)/4;
+  if(h<24)return 40+25*(h-20)/4;
+  if(h<36)return 65+10*(h-24)/12;
+  if(h<48)return 75+10*(h-36)/12;
+  return Math.min(95,85+10*(h-48)/24);
+}
+function actKetones(h){
+  if(h<8)return 0;
+  if(h<12)return 5*(h-8)/4;
+  if(h<16)return 5+15*(h-12)/4;
+  if(h<24)return 20+30*(h-16)/8;
+  if(h<48)return 50+30*(h-24)/24;
+  return Math.min(95,80+15*(h-48)/24);
+}
+function actGH(h){
+  if(h<12)return 0;
+  if(h<16)return 10*(h-12)/4;
+  if(h<24)return 10+60*(h-16)/8;
+  if(h<48)return 70+25*(h-24)/24;
+  return 95;
+}
+function actMTOR(h){
+  if(h<8)return 0;
+  if(h<12)return 10*(h-8)/4;
+  if(h<16)return 10+20*(h-12)/4;
+  if(h<24)return 30+40*(h-16)/8;
+  if(h<48)return 70+25*(h-24)/24;
+  return 95;
+}
+function actFatox(h){
+  if(h<4)return 0;
+  if(h<8)return 20*(h-4)/4;
+  if(h<12)return 20+30*(h-8)/4;
+  if(h<16)return 50+30*(h-12)/4;
+  if(h<24)return 80+15*(h-16)/8;
+  return 95;
+}
+
+var PROCESSES=[
+  {key:'fatox',name:'Fat oxidation',fn:actFatox,icon:'🔥'},
+  {key:'mtor',name:'mTOR suppression',fn:actMTOR,icon:'🛑'},
+  {key:'ketones',name:'Ketones',fn:actKetones,icon:'💧'},
+  {key:'gh',name:'Growth hormone',fn:actGH,icon:'💪'},
+  {key:'autophagy',name:'Autophagy',fn:actAutophagy,icon:'♻️'}
+];
+
+// === EXCEPTION TYPES & SETBACK VALUES ===
+// Calibrated against published 16:8 trial outcomes (typical Western diet during eating window).
+// Typical Western 16:8 trial participant exception load per month:
+//   ~20 sugar boluses, ~12 processed meals, ~8 light alcohol, ~2 heavy alcohol,
+//   ~8 late eating, ~1 heavy day = ~51 exceptions/month
+// This load consumes ~25% of gross fasting work, leaving 75% to produce measured outcomes.
+// Cost values below were derived to make this calibration consistent across all parameters.
+var EXCEPTIONS={
+  sugar:{
+    icon:'🍰',label:'Sugar bolus',
+    desc:'Dessert, sugary drink, sweet pastry, processed sweet, fruit juice',
+    cost:{fatox:9,mtor:23,ketones:35,gh:12,autophagy:18}
+  },
+  processed:{
+    icon:'🍕',label:'Processed meal',
+    desc:'Fast food, pizza, burger, fried food, refined carb-heavy meal',
+    cost:{fatox:23,mtor:44,ketones:58,gh:18,autophagy:23}
+  },
+  alcohol:{
+    icon:'🍷',label:'Alcohol (>1 drink)',
+    desc:'2+ drinks: beer, wine, spirits, cocktails',
+    cost:{fatox:44,mtor:35,ketones:82,gh:29,autophagy:53}
+  },
+  alcohol_light:{
+    icon:'🥂',label:'1 drink',
+    desc:'Single glass of wine, half pint, single spirit',
+    cost:{fatox:15,mtor:12,ketones:29,gh:9,autophagy:15}
+  },
+  late:{
+    icon:'🌙',label:'Late eating',
+    desc:'Eating within 2h of sleep, disrupts overnight repair',
+    cost:{fatox:12,mtor:18,ketones:23,gh:23,autophagy:18}
+  },
+  heavy:{
+    icon:'💥',label:'Heavy day',
+    desc:'Multiple exceptions stacked: e.g. pizza + beer + dessert',
+    cost:{fatox:73,mtor:88,ketones:146,gh:58,autophagy:102}
+  }
+};
+
+// Integrate activation curve from 0 to fastHours using trapezoid (in %-hours)
+function integrateActivation(fn,fastHours){
+  if(fastHours<=0)return 0;
+  var steps=Math.max(2,Math.floor(fastHours*20));
+  var total=0;
+  var prev=fn(0);
+  for(var i=1;i<=steps;i++){
+    var h=i*fastHours/steps;
+    var v=fn(h);
+    total+=(prev+v)/2*(fastHours/steps);
+    prev=v;
+  }
+  return total;
+}
+
+// === MONTHLY TARGETS (anchored to 16:8 NET = trial outcomes) ===
+// For fat ox / mTOR / ketones: gross 16:8 minus typical Western diet stress (the work that
+// actually produced measured 16:8 trial outcomes - this is what your protocol aims for).
+// For GH / autophagy: same as gross 16:8 (daytime exceptions don't subtract from these
+// since they're not active during daytime hours when exceptions occur).
+var MONTHLY_TARGETS={
+  fatox:10575,    // 13200 gross - 2625 Western stress (20%)
+  mtor:2195,      // 3000 gross - 805 Western stress (27%)
+  ketones:1368,   // 1800 gross - 432 Western stress (24%)
+  gh:600,         // no stress subtraction (threshold-gated)
+  autophagy:300   // no stress subtraction (threshold-gated)
+};
+
+// The 3 "measurable" parameters that gate milestone advancement
+// (these correspond to outcomes you can verify in blood tests / body measurements)
+var MEASURABLE_KEYS=['fatox','mtor','ketones'];
+
+// === 12-MONTH PLAN MILESTONES ===
+// Based on 16:8 IF research: what reaching cumulative work levels delivers
+// Values are CUMULATIVE process work (summed across months) at full plan
+var PLAN_MILESTONES=[
+  {month:1,desc:'Initial metabolic shift. Easier hunger management. Slight waist reduction (~0.5cm). Energy stabilising.'},
+  {month:3,desc:'Measurable: -2-4% body weight, waist -1-2cm, fat mass -0.7kg, triglycerides notably down, fasting insulin improved, HDL up. The first solid milestone.'},
+  {month:6,desc:'-5kg cumulative, waist -3-4cm. Lipid panel substantially better. Insulin sensitivity meaningfully improved. Skin and inflammation markers visibly reduced. Sleep stable.'},
+  {month:9,desc:'Body composition consolidating. Metabolic flexibility well-established. Most blood markers in healthy ranges. Occasional dietary exceptions handled cleanly without disturbance.'},
+  {month:12,desc:'-7-10kg or stable lower weight. All metabolic markers in healthy ranges. Inflammation and oxidative stress significantly reduced. Long-term cardiovascular and metabolic risk profile shifted to lower-risk distribution.'}
+];
+
+function getExceptions(){return JSON.parse(localStorage.getItem('slurp_exceptions')||'[]');}
+function saveExceptions(arr){
+  arr.sort(function(a,b){return b.timestamp-a.timestamp;});
+  if(arr.length>500)arr.length=500;
+  localStorage.setItem('slurp_exceptions',JSON.stringify(arr));
+}
+function addException(type){
+  var exc=getExceptions();
+  exc.unshift({type:type,timestamp:Date.now()});
+  saveExceptions(exc);
+  var e=EXCEPTIONS[type];
+  showToast(e.icon,'Logged: '+e.label,'terr');
+  if(activeTab==='exc'||activeTab==='proc'||activeTab==='plan')renderHistory();
+}
+function deleteException(idx){
+  var exc=getExceptions();
+  exc.splice(idx,1);
+  saveExceptions(exc);
+  renderHistory();
+  showToast('🗑️','Exception removed','tok');
+}
+
+// Build the parameter progress HTML (used inside procPanel now)
+function buildParamProgressHTML(){
+  var history=getHistory();
+  var exceptions=getExceptions();
+  var now=new Date();
+  var dayOfMonth=now.getDate();
+  var daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  var monthStart=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  var fasts=history.filter(function(f){return f.end>=monthStart;});
+  var excs=exceptions.filter(function(e){return e.timestamp>=monthStart;});
+  
+  var actuals={};
+  PROCESSES.forEach(function(p){actuals[p.key]=0;});
+  fasts.forEach(function(f){
+    PROCESSES.forEach(function(p){
+      actuals[p.key]+=integrateActivation(p.fn,f.hours);
+    });
+  });
+  if(fastStart){
+    var activeHours=(Date.now()-fastStart)/3600000;
+    PROCESSES.forEach(function(p){
+      actuals[p.key]+=integrateActivation(p.fn,activeHours);
+    });
+  }
+  excs.forEach(function(e){
+    var costs=EXCEPTIONS[e.type].cost;
+    PROCESSES.forEach(function(p){
+      actuals[p.key]=Math.max(0,actuals[p.key]-(costs[p.key]||0));
+    });
+  });
+  
+  var liveLabel=fastStart?' · live':'';
+  var html='<div class="param-progress-title"><span>Month-to-date vs 16:8 plan'+liveLabel+'</span><span class="param-progress-sub">Day '+dayOfMonth+'/'+daysInMonth+' · '+fasts.length+' fasts'+(excs.length?' · '+excs.length+' exc':'')+'</span></div>';
+  
+  PROCESSES.forEach(function(p){
+    var actual=actuals[p.key];
+    var monthlyTarget=MONTHLY_TARGETS[p.key];
+    var proRatedTarget=monthlyTarget*dayOfMonth/daysInMonth;
+    var pct=proRatedTarget>0?Math.round(actual/proRatedTarget*100):0;
+    var barPct=Math.min(100,pct);
+    var cls=pct<40?'low':(pct<70?'mid':(pct<110?'high':'over'));
+    html+='<div class="param-row"><span class="param-icon">'+p.icon+'</span><span class="param-name">'+p.name+'</span><div class="param-bar-wrap"><div class="param-bar" style="width:'+barPct+'%"></div></div><span class="param-pct '+cls+'">'+pct+'%</span></div>';
+  });
+  return html;
+}
+
+// Render the milestone card at top (always visible)
+function renderMilestoneCard(){
+  var card=document.getElementById('milestoneCard');
+  if(!card)return;
+  var history=getHistory();
+  var exceptions=getExceptions();
+  
+  if(!history.length){
+    card.innerHTML='<div class="ms-empty">Start your first fast to begin tracking your 12-month progress.</div>';
+    return;
+  }
+  
+  // Compute total accumulated work for each parameter (with active fast + exception setbacks)
+  var totals={};
+  PROCESSES.forEach(function(p){totals[p.key]=0;});
+  history.forEach(function(f){
+    PROCESSES.forEach(function(p){
+      totals[p.key]+=integrateActivation(p.fn,f.hours);
+    });
+  });
+  if(fastStart){
+    var ah=(Date.now()-fastStart)/3600000;
+    PROCESSES.forEach(function(p){
+      totals[p.key]+=integrateActivation(p.fn,ah);
+    });
+  }
+  exceptions.forEach(function(e){
+    var costs=EXCEPTIONS[e.type].cost;
+    PROCESSES.forEach(function(p){
+      totals[p.key]=Math.max(0,totals[p.key]-(costs[p.key]||0));
+    });
+  });
+  
+  // Calendar days tracked
+  var firstFast=history[history.length-1];
+  var actualDays=(Date.now()-firstFast.start)/86400000;
+  
+  // Milestone gating: advance ONLY when ALL 3 measurable params reach 100% of current milestone target
+  // milestoneMonths = the slice multiplier (1 = 1 month of targets, 3 = 3 months of targets, etc.)
+  var milestoneMonths=[3,6,9,12];
+  var lastMs=null;
+  var nextMs=milestoneMonths[0];
+  
+  for(var i=0;i<milestoneMonths.length;i++){
+    var monthN=milestoneMonths[i];
+    // Check: do all 3 measurables meet monthN × monthly_target?
+    var allMet=true;
+    for(var j=0;j<MEASURABLE_KEYS.length;j++){
+      var k=MEASURABLE_KEYS[j];
+      if(totals[k] < monthN*MONTHLY_TARGETS[k]){
+        allMet=false;
+        break;
+      }
+    }
+    if(allMet){
+      lastMs=monthN;
+      nextMs=milestoneMonths[i+1]||null;
+    } else {
+      nextMs=monthN;
+      break;
+    }
+  }
+  
+  // Find descriptor for next milestone
+  var nextDesc=null;
+  if(nextMs){
+    for(var d=0;d<PLAN_MILESTONES.length;d++){
+      if(PLAN_MILESTONES[d].month===nextMs){nextDesc=PLAN_MILESTONES[d].desc;break;}
+    }
+  }
+  
+  var html='<div class="ms-card-inner">';
+  
+  // Header: day count
+  html+='<div class="ms-day-count">Day '+Math.floor(actualDays)+' of your protocol</div>';
+  
+  if(lastMs){
+    html+='<div class="ms-achieved-mini">✅ '+lastMs+'-month milestone reached — record measurements!</div>';
+  }
+  
+  if(nextMs){
+    var targetN=nextMs;
+    
+    html+='<div class="ms-target-header">🎯 Working toward <strong>'+targetN+'-month milestone</strong></div>';
+    
+    // Param bars - show cumulative progress toward FULL nextMs target
+    // (we track from zero, so user sees "you have X of Y total")
+    PROCESSES.forEach(function(p){
+      var actual=totals[p.key];
+      var msTarget = MONTHLY_TARGETS[p.key]*targetN; // full cumulative target
+      // Progress toward this target from previous milestone (or zero if first)
+      var prevTarget = lastMs ? MONTHLY_TARGETS[p.key]*lastMs : 0;
+      var actualInSlice = Math.max(0, actual - prevTarget);
+      var sliceSize = msTarget - prevTarget;
+      var pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
+      var barPct = Math.min(100, pct);
+      var isMeasurable = MEASURABLE_KEYS.indexOf(p.key)>=0;
+      var pctClass = pct>=100 ? 'ahead' : 'behind';
+      
+      html+='<div class="ms-param-row">';
+      html+='<div class="ms-param-head">';
+      html+='<span class="ms-param-icon">'+p.icon+'</span>';
+      html+='<span class="ms-param-name">'+p.name+(isMeasurable?'':' <span style="color:var(--text-dim);font-size:0.65rem;font-weight:400;">(non-gating)</span>')+'</span>';
+      html+='<span class="ms-param-pct '+pctClass+'">'+pct+'%</span>';
+      html+='</div>';
+      html+='<div class="ms-param-bar-wrap">';
+      html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
+      html+='</div>';
+      html+='</div>';
+    });
+    
+    // Pace estimate based on measurable parameters only
+    var paceText='';
+    var measurableProgress=0;
+    var measurableSliceSize=0;
+    MEASURABLE_KEYS.forEach(function(k){
+      var prevTarget = lastMs ? MONTHLY_TARGETS[k]*lastMs : 0;
+      var msTarget = MONTHLY_TARGETS[k]*targetN;
+      measurableProgress += Math.max(0, totals[k] - prevTarget);
+      measurableSliceSize += (msTarget - prevTarget);
+    });
+    var avgPct = measurableSliceSize>0 ? measurableProgress/measurableSliceSize*100 : 0;
+    
+    if(avgPct>0&&avgPct<100){
+      var sliceStartDay = lastMs ? lastMs*30 : 0; // assumed slice start (calendar)
+      var daysElapsedInSlice = Math.max(1, actualDays-sliceStartDay);
+      var rate = avgPct/daysElapsedInSlice;
+      var daysToTarget = rate>0 ? (100-avgPct)/rate : 999;
+      paceText='At current rate: milestone in ~'+Math.round(daysToTarget)+' more days';
+    }
+    
+    if(paceText){
+      html+='<div class="ms-pace-text">'+paceText+'</div>';
+    }
+    
+    html+='<div class="ms-legend">Milestone advances when all 3 measurable parameters reach 100%. GH & autophagy continue accumulating regardless.</div>';
+    
+    if(nextDesc){
+      html+='<div class="ms-target-desc"><strong>When reached:</strong> '+nextDesc+'</div>';
+    }
+  } else if(lastMs===12){
+    html+='<div class="ms-target-header">🎉 All 12-month milestones reached</div>';
+    html+='<div class="ms-target-desc">You\'re in maintenance phase. Keep going.</div>';
+  }
+  
+  html+='</div>';
+  card.innerHTML=html;
+}
+
+// Backward-compatible: renderParamProgress now just renders the milestone card and refreshes proc panel if visible
+function renderParamProgress(){
+  renderMilestoneCard();
+  // Also refresh proc panel if currently visible
+  if(document.getElementById('procPanel')&&document.getElementById('procPanel').style.display!=='none'){
+    renderProcessPanel(getHistory(),getExceptions());
+  }
+}
+
+function pad(n){return String(n).padStart(2,'0');}
+function fmt(d){return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});}
+function fmtDate(d){return d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});}
+function dayFloor(d){var x=new Date(d);x.setHours(0,0,0,0);return x;}
+function msIcon(h){if(h>=24)return'🔮';if(h>=16)return'⭐';if(h>=14)return'🔥';if(h>=12)return'🌙';return'💤';}
+
+var toastTimer=null;
+function showToast(icon,msg,cls){
+  var t=document.getElementById('toast');
+  document.getElementById('tIcon').textContent=icon;
+  document.getElementById('tMsg').textContent=msg;
+  t.className='toast '+(cls||'')+' show';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.className='toast '+(cls||'');},4500);
+}
+
+function showConfirm(title,body,okLabel,okCls,cb){
+  document.getElementById('confirmTitle').textContent=title;
+  document.getElementById('confirmBody').textContent=body;
+  var okBtn=document.getElementById('confirmOkBtn');
+  okBtn.textContent=okLabel||'Confirm';
+  okBtn.className='modal-btn '+(okCls||'save');
+  confirmCallback=cb;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function confirmOk(){
+  closeModal('confirmModal');
+  if(confirmCallback)confirmCallback();
+  confirmCallback=null;
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function buildSelects(){
+  var now=new Date();
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  ['s_day','e_day'].forEach(function(id){
+    var sel=document.getElementById(id);sel.innerHTML='';
+    for(var i=0;i<14;i++){
+      var d=new Date(now);d.setDate(d.getDate()-i);
+      var o=document.createElement('option');o.value=i;
+      o.textContent=i===0?'Today':i===1?'Yest':days[d.getDay()]+' '+d.getDate();
+      sel.appendChild(o);
+    }
+  });
+  ['s_hour','e_hour'].forEach(function(id){
+    var sel=document.getElementById(id);sel.innerHTML='';
+    for(var h=0;h<24;h++){var o=document.createElement('option');o.value=h;o.textContent=pad(h);sel.appendChild(o);}
+  });
+  ['s_min','e_min'].forEach(function(id){
+    var sel=document.getElementById(id);sel.innerHTML='';
+    for(var m=0;m<60;m+=5){var o=document.createElement('option');o.value=m;o.textContent=pad(m);sel.appendChild(o);}
+  });
+}
+
+function setSelects(prefix,ts){
+  var d=new Date(ts),now=new Date();
+  var diff=Math.max(0,Math.min(13,Math.floor((dayFloor(now)-dayFloor(d))/86400000)));
+  document.getElementById(prefix+'_day').value=diff;
+  document.getElementById(prefix+'_hour').value=d.getHours();
+  var rm=Math.round(d.getMinutes()/5)*5;
+  document.getElementById(prefix+'_min').value=rm>=60?55:rm;
+}
+
+function getTS(prefix){
+  var da=parseInt(document.getElementById(prefix+'_day').value)||0;
+  var h=parseInt(document.getElementById(prefix+'_hour').value)||0;
+  var m=parseInt(document.getElementById(prefix+'_min').value)||0;
+  var d=new Date();d.setDate(d.getDate()-da);d.setHours(h,m,0,0);
+  return d.getTime();
+}
+
+function openEditStart(){
+  if(!fastStart)return;
+  editMode='fixStart';editIndex=null;
+  buildSelects();
+  document.getElementById('modalTitle').textContent='Fix Start Time';
+  document.getElementById('modalSub').textContent='Set the actual time your last meal ended';
+  document.getElementById('startLabel').textContent='Fast Started';
+  document.getElementById('endBlock').style.display='none';
+  setSelects('s',fastStart);
+  document.getElementById('saveBtn').textContent='Update';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openEndModal(){
+  if(!fastStart)return;
+  editMode='fixEnd';editIndex=null;
+  buildSelects();
+  document.getElementById('modalTitle').textContent='Fix End Time';
+  document.getElementById('modalSub').textContent='Set when you actually started eating — saves and ends the fast';
+  document.getElementById('startLabel').textContent='Fast Ended';
+  document.getElementById('endBlock').style.display='none';
+  setSelects('s',Date.now());
+  document.getElementById('saveBtn').textContent='Save Fast';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openEditHistory(i){
+  editMode='history';editIndex=i;
+  buildSelects();
+  var h=getHistory();var item=h[i];
+  document.getElementById('modalTitle').textContent='Edit Fast';
+  document.getElementById('modalSub').textContent='Correct the start and end times';
+  document.getElementById('startLabel').textContent='Fast Started';
+  document.getElementById('endBlock').style.display='block';
+  setSelects('s',item.start);
+  setSelects('e',item.end);
+  document.getElementById('saveBtn').textContent='Save';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openAddManual(){
+  editMode='addManual';editIndex=null;
+  buildSelects();
+  document.getElementById('modalTitle').textContent='Add Missed Fast';
+  document.getElementById('modalSub').textContent='Log a fast you forgot to record';
+  document.getElementById('startLabel').textContent='Fast Started';
+  document.getElementById('endBlock').style.display='block';
+  var y=new Date();y.setDate(y.getDate()-1);y.setHours(20,0,0,0);
+  var mg=new Date();mg.setHours(8,0,0,0);
+  setSelects('s',y.getTime());
+  setSelects('e',mg.getTime());
+  document.getElementById('saveBtn').textContent='Add';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function saveEdit(){
+  if(editMode==='fixStart'){
+    var ns=getTS('s');
+    if(ns>Date.now()){showToast('⚠️','Start time cannot be in the future','terr');return;}
+    fastStart=ns;
+    localStorage.setItem('slurp_start',fastStart);
+    var hrs=(Date.now()-fastStart)/3600000;
+    notified={12:hrs>=12,14:hrs>=14,16:hrs>=16,24:hrs>=24};
+    saveNotified();updateCards();tick();
+    closeModal('editModal');
+    showToast('✅','Start time updated','tok');
+
+  } else if(editMode==='fixEnd'){
+    var ne=getTS('s');
+    if(!fastStart){showToast('⚠️','No active fast found','terr');return;}
+    if(ne<=fastStart){showToast('⚠️','End must be after start','terr');return;}
+    if(ne>Date.now()+120000){showToast('⚠️','End time cannot be in the future','terr');return;}
+    saveHistory(fastStart,ne,(ne-fastStart)/3600000);
+    stopFast();
+    closeModal('editModal');
+    showToast('✅','Fast saved with corrected end time','tok');
+    setTimeout(checkRecommendation,400);
+
+  } else if(editMode==='addManual'){
+    var ns2=getTS('s'),ne2=getTS('e');
+    if(ne2<=ns2){showToast('⚠️','End must be after start','terr');return;}
+    saveHistory(ns2,ne2,(ne2-ns2)/3600000);
+    renderHistory();closeModal('editModal');
+    showToast('✅','Fast added','tok');
+
+  } else if(editMode==='history'){
+    var ns3=getTS('s'),ne3=getTS('e');
+    if(ne3<=ns3){showToast('⚠️','End must be after start','terr');return;}
+    var h=getHistory();
+    h[editIndex]={start:ns3,end:ne3,hours:(ne3-ns3)/3600000};
+    saveHistoryArr(h);
+    renderHistory();closeModal('editModal');
+    showToast('✅','Fast updated','tok');
+  }
+}
+
+function updateCards(){
+  if(!fastStart)return;
+  document.getElementById('startVal').textContent=fmt(new Date(fastStart));
+  document.getElementById('targetVal').textContent=fmt(new Date(fastStart+16*3600000));
+}
+
+function saveNotified(){localStorage.setItem('slurp_notified',JSON.stringify(notified));}
+
+var lastParamRefresh=0;
+function tick(){
+  if(!fastStart)return;
+  var elapsed=Date.now()-fastStart;
+  var h=Math.floor(elapsed/3600000),m=Math.floor((elapsed%3600000)/60000),s=Math.floor((elapsed%60000)/1000);
+  document.getElementById('bigTimer').textContent=pad(h)+':'+pad(m)+':'+pad(s);
+  var hrs=elapsed/3600000;
+  // Notification thresholds (still useful even without pills)
+  [12,14,16,24].forEach(function(threshold){
+    if(hrs>=threshold){
+      if(!notified[threshold]){
+        var ms=MS[threshold];
+        showToast(ms.icon,ms.body,ms.toast);
+        if('Notification' in window&&Notification.permission==='granted'){
+          new Notification(ms.title,{body:ms.body});
+        }
+        notified[threshold]=true;saveNotified();
+      }
+    }
+  });
+  // Refresh param progress every 60 seconds during active fast
+  if(Date.now()-lastParamRefresh>60000){
+    renderParamProgress();
+    lastParamRefresh=Date.now();
+  }
+}
+
+function checkRecommendation(){
+  var dismissed=localStorage.getItem('slurp_rec_dismissed');
+  var todayStr=new Date().toDateString();
+  if(dismissed===todayStr)return;
+  var h=getHistory();if(!h.length)return;
+  var last=h[0];
+  var lastDay=new Date(last.end).toDateString();
+  var yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  if(lastDay!==yesterday.toDateString()&&lastDay!==todayStr)return;
+  if(last.hours>=16){
+    document.getElementById('recMsg').textContent='Recommended fast: 12h';
+    document.getElementById('recBanner').classList.remove('hidden');
+  }
+}
+
+function dismissRec(){
+  localStorage.setItem('slurp_rec_dismissed',new Date().toDateString());
+  document.getElementById('recBanner').classList.add('hidden');
+}
+
+function getHistory(){return JSON.parse(localStorage.getItem('slurp_history')||'[]');}
+function saveHistoryArr(arr){
+  arr.sort(function(a,b){return b.start-a.start;});
+  if(arr.length>200)arr.length=200; // increased from 60 to keep more history
+  localStorage.setItem('slurp_history',JSON.stringify(arr));
+}
+function saveHistory(start,end,hours){
+  var h=getHistory();h.unshift({start:start,end:end,hours:hours});saveHistoryArr(h);
+}
+
+function setTab(tab){
+  activeTab=tab;
+  document.getElementById('tabBreak').className='tab'+(tab==='break'?' active':'');
+  document.getElementById('tabProc').className='tab'+(tab==='proc'?' active':'');
+  document.getElementById('tabExc').className='tab'+(tab==='exc'?' active':'');
+  document.getElementById('tabMeas').className='tab'+(tab==='meas'?' active':'');
+  document.getElementById('tabPlan').className='tab'+(tab==='plan'?' active':'');
+  document.getElementById('tabList').className='tab'+(tab==='list'?' active':'');
+  document.getElementById('statsPanel').style.display=tab==='break'?'block':'none';
+  document.getElementById('procPanel').style.display=tab==='proc'?'block':'none';
+  document.getElementById('excPanel').style.display=tab==='exc'?'block':'none';
+  document.getElementById('measPanel').style.display=tab==='meas'?'block':'none';
+  document.getElementById('planPanel').style.display=tab==='plan'?'block':'none';
+  document.getElementById('histList').style.display=tab==='list'?'block':'none';
+}
+
+function computeProcessWork(history,exceptions,daysBack){
+  var cutoff=Date.now()-daysBack*86400000;
+  var fasts=history.filter(function(f){return f.end>=cutoff;});
+  var excs=exceptions.filter(function(e){return e.timestamp>=cutoff;});
+  var totals={};
+  PROCESSES.forEach(function(p){totals[p.key]=0;});
+  fasts.forEach(function(f){
+    PROCESSES.forEach(function(p){
+      totals[p.key]+=integrateActivation(p.fn,f.hours);
+    });
+  });
+  // Apply exception setbacks
+  var setbacks={};
+  PROCESSES.forEach(function(p){setbacks[p.key]=0;});
+  excs.forEach(function(e){
+    var costs=EXCEPTIONS[e.type].cost;
+    PROCESSES.forEach(function(p){
+      setbacks[p.key]+=costs[p.key]||0;
+    });
+  });
+  // Net = gross - setbacks (floor at 0)
+  var net={};
+  PROCESSES.forEach(function(p){
+    net[p.key]=Math.max(0,totals[p.key]-setbacks[p.key]);
+  });
+  return {gross:totals,setbacks:setbacks,net:net,nFasts:fasts.length,nExcs:excs.length,daysBack:daysBack};
+}
+
+function renderProcessPanel(history,exceptions){
+  var pp=document.getElementById('procPanel');
+  if(!history.length){pp.innerHTML='<div class="empty-msg">No fasts yet.</div>';return;}
+  
+  var month=computeProcessWork(history,exceptions,30);
+  var quarter=computeProcessWork(history,exceptions,90);
+  
+  // Quarterly target = 3 × monthly target (16:8 reference)
+  var QUARTERLY_TARGETS={};
+  Object.keys(MONTHLY_TARGETS).forEach(function(k){QUARTERLY_TARGETS[k]=MONTHLY_TARGETS[k]*3;});
+  
+  // Lead with month-to-date param progress (the calendar-month live view)
+  var html='<div class="proc-panel">'+buildParamProgressHTML()+'</div>';
+  
+  html+='<div class="proc-panel" style="margin-top:8px"><div class="stats-title">Last 30 days · '+month.nFasts+' fasts · '+month.nExcs+' exceptions</div>';
+  PROCESSES.forEach(function(p){
+    var grossV=month.gross[p.key];
+    var netV=month.net[p.key];
+    var setbackV=month.setbacks[p.key];
+    var tgt=MONTHLY_TARGETS[p.key];
+    var pctOfTarget=Math.min(100,Math.round(netV/tgt*100));
+    var setbackTxt=setbackV>0?' (-'+Math.round(setbackV)+')':'';
+    html+='<div class="proc-row"><span class="stat-icon">'+p.icon+'</span><span class="proc-name">'+p.name+'</span><div class="proc-bar-wrap"><div class="proc-bar" style="width:'+pctOfTarget+'%"></div></div><span class="proc-val">'+Math.round(netV)+setbackTxt+'</span></div>';
+  });
+  html+='<div class="proc-info">Bar = % of monthly target (target = strict 16:8 daily). Setbacks shown in parens.</div></div>';
+  
+  // Quarterly P&L view
+  html+='<div class="proc-panel" style="margin-top:8px"><div class="stats-title">Last 90 days · plan vs actual</div>';
+  PROCESSES.forEach(function(p){
+    var grossV=quarter.gross[p.key];
+    var netV=quarter.net[p.key];
+    var setbackV=quarter.setbacks[p.key];
+    var tgt=QUARTERLY_TARGETS[p.key];
+    var pctOfTarget=Math.min(100,Math.round(netV/tgt*100));
+    var setbackTxt=setbackV>0?' (-'+Math.round(setbackV)+')':'';
+    html+='<div class="proc-row"><span class="stat-icon">'+p.icon+'</span><span class="proc-name">'+p.name+'</span><div class="proc-bar-wrap"><div class="proc-bar" style="width:'+pctOfTarget+'%"></div></div><span class="proc-val">'+Math.round(netV)+'/'+tgt+'</span></div>';
+  });
+  html+='<div class="proc-info">Quarterly target = 3 months × strict 16:8 daily. Net = work accumulated minus exception setbacks.</div></div>';
+  
+  pp.innerHTML=html;
+}
+
+function renderExceptionPanel(exceptions){
+  var ep=document.getElementById('excPanel');
+  var html='<div class="proc-panel"><div class="stats-title">Tap to log an exception</div>';
+  html+='<div class="exc-buttons">';
+  ['sugar','processed','alcohol_light','alcohol','late','heavy'].forEach(function(key){
+    var e=EXCEPTIONS[key];
+    var totalCost=Object.values(e.cost).reduce(function(a,b){return a+b;},0);
+    html+='<button class="exc-btn" onclick="addException(\''+key+'\')"><span class="exc-icon">'+e.icon+'</span><span class="exc-label">'+e.label+'</span><span class="exc-cost">'+e.desc+'</span></button>';
+  });
+  html+='</div>';
+  
+  // Recent exceptions list
+  var recent=exceptions.slice(0,15);
+  if(recent.length){
+    html+='<div class="stats-title" style="margin-top:14px">Recent exceptions</div>';
+    recent.forEach(function(e,i){
+      var ex=EXCEPTIONS[e.type];
+      var d=new Date(e.timestamp);
+      html+='<div class="exc-list-item"><span class="exc-list-icon">'+ex.icon+'</span><div class="exc-list-info"><div class="exc-list-type">'+ex.label+'</div><div class="exc-list-time">'+fmtDate(d)+' '+fmt(d)+'</div></div><button class="exc-list-del" onclick="deleteException('+i+')">✕</button></div>';
+    });
+  }
+  html+='</div>';
+  ep.innerHTML=html;
+}
+
+function renderPlanPanel(history,exceptions){
+  var pp=document.getElementById('planPanel');
+  if(!history.length){pp.innerHTML='<div class="empty-msg">Start fasting to see plan.</div>';return;}
+  
+  // Compute autophagy as the key tracking metric (most threshold-gated, hardest to accumulate)
+  // Calculate accumulated NET autophagy work over all history
+  var totalNetAutophagy=0;
+  history.forEach(function(f){
+    totalNetAutophagy+=integrateActivation(actAutophagy,f.hours);
+  });
+  exceptions.forEach(function(e){
+    totalNetAutophagy-=EXCEPTIONS[e.type].cost.autophagy;
+  });
+  totalNetAutophagy=Math.max(0,totalNetAutophagy);
+  
+  // Strict 16:8 plan: 300/month autophagy. Months 1-12 cumulative: 300, 600, 900, ..., 3600
+  // Estimate which month equivalent the user has reached
+  var monthsEquivalent=totalNetAutophagy/300;
+  
+  // Find first day of fasting
+  var firstFast=history[history.length-1];
+  var actualDays=(Date.now()-firstFast.start)/86400000;
+  var actualMonths=actualDays/30;
+  
+  var rate=monthsEquivalent/Math.max(1,actualMonths)*100; // % of plan rate
+  
+  var html='<div class="proc-panel"><div class="stats-title">Plan vs Actual</div>';
+  html+='<div style="font-size:0.74rem;line-height:1.7;color:var(--text);margin-bottom:8px">';
+  html+='Tracking time: <strong>'+actualMonths.toFixed(1)+' months</strong><br>';
+  html+='Plan-equivalent reached: <strong>'+monthsEquivalent.toFixed(1)+' months of 16:8</strong><br>';
+  html+='Running at: <strong>'+Math.round(rate)+'% of plan rate</strong><br>';
+  if(rate>0&&rate<100){
+    var monthsToReach12=12/(rate/100);
+    html+='At this rate, 12-month plan reached in: <strong>'+monthsToReach12.toFixed(1)+' months</strong>';
+  }
+  html+='</div></div>';
+  
+  // 12-month milestones with progress
+  html+='<div class="stats-title" style="margin-top:12px">12-month plan milestones</div>';
+  PLAN_MILESTONES.forEach(function(ms){
+    var isCurrent=monthsEquivalent>=ms.month-1&&monthsEquivalent<ms.month+0.5;
+    var isReached=monthsEquivalent>=ms.month;
+    var pct=Math.min(100,Math.round(monthsEquivalent/ms.month*100));
+    var icon=isReached?'✅':(isCurrent?'⏳':'⭕');
+    html+='<div class="plan-card'+(isCurrent?' current':'')+'">';
+    html+='<div class="plan-month">'+icon+' Month '+ms.month+'</div>';
+    html+='<div class="plan-desc">'+ms.desc+'</div>';
+    html+='<div class="plan-progress"><span class="plan-prog-label">progress</span><div class="plan-prog-bar"><div class="plan-prog-fill" style="width:'+pct+'%"></div></div><span class="plan-prog-pct">'+pct+'%</span></div>';
+    html+='</div>';
+  });
+  
+  pp.innerHTML=html;
+}
+
+// === MEASUREMENTS ===
+// Protocol started 52 days ago (relative to today). Compute protocol start as the first fast date.
+var MEASUREMENT_FIELDS=[
+  {key:'weight',label:'Weight',unit:'kg',step:'0.1'},
+  {key:'waist',label:'Waist',unit:'cm',step:'0.5'},
+  {key:'tg',label:'Triglycerides',unit:'mg/dL',step:'1'},
+  {key:'hdl',label:'HDL',unit:'mg/dL',step:'1'},
+  {key:'ldl',label:'LDL',unit:'mg/dL',step:'1'},
+  {key:'glucose',label:'Fasting glucose',unit:'mg/dL',step:'1'},
+  {key:'insulin',label:'Fasting insulin',unit:'µIU/mL',step:'0.1'},
+  {key:'hba1c',label:'HbA1c',unit:'%',step:'0.1'}
+];
+
+// Baseline values from your Feb 2026 bloods
+var MEASUREMENT_BASELINE={
+  weight:82,waist:97,tg:250,hdl:47,ldl:120,glucose:87,insulin:null,hba1c:null
+};
+
+var MEASUREMENT_TIMEPOINTS=[
+  {days:0,label:'Baseline'},
+  {days:90,label:'3 months'},
+  {days:180,label:'6 months'},
+  {days:270,label:'9 months'},
+  {days:360,label:'12 months'}
+];
+
+function getMeasurements(){return JSON.parse(localStorage.getItem('slurp_measurements')||'{}');}
+function saveMeasurements(m){localStorage.setItem('slurp_measurements',JSON.stringify(m));}
+
+function getProtocolStart(){
+  // Protocol start = oldest fast in history (or saved override)
+  var saved=localStorage.getItem('slurp_protocol_start');
+  if(saved)return parseInt(saved);
+  var h=getHistory();
+  if(!h.length)return Date.now();
+  return h[h.length-1].start;
+}
+
+function renderMeasurementsPanel(){
+  var ep=document.getElementById('measPanel');
+  var meas=getMeasurements();
+  var start=getProtocolStart();
+  var now=Date.now();
+  
+  var html='<div class="proc-panel"><div class="stats-title">Quarterly measurements</div>';
+  html+='<div class="proc-info" style="margin-bottom:12px;font-style:normal;">Record your weight, waist, and bloods at each timepoint to track real outcomes vs the 12-month plan.</div>';
+  
+  // Show each timepoint
+  MEASUREMENT_TIMEPOINTS.forEach(function(tp){
+    var dueDate=new Date(start+tp.days*86400000);
+    var daysUntil=Math.round((dueDate-now)/86400000);
+    var isOverdue=daysUntil<-7;
+    var isDue=daysUntil>=-7&&daysUntil<=14;
+    var isFuture=daysUntil>14;
+    var isPast=daysUntil<-7;
+    var hasData=meas[tp.days]&&Object.keys(meas[tp.days]).length>0;
+    
+    var statusIcon='⭕';
+    var statusText='';
+    var clickable=true;
+    if(hasData){statusIcon='✅';statusText='Recorded';}
+    else if(isDue){statusIcon='⏰';statusText='Due now ('+(daysUntil>=0?'in '+daysUntil+'d':Math.abs(daysUntil)+'d ago')+')';}
+    else if(isOverdue){statusIcon='⚠️';statusText='Overdue ('+Math.abs(daysUntil)+' days)';}
+    else if(isFuture){statusIcon='📅';statusText='In '+daysUntil+' days';clickable=false;}
+    
+    html+='<div class="meas-card'+(hasData?' filled':'')+(isDue?' due':'')+'" '+(clickable?'onclick="openMeasurement('+tp.days+')"':'')+' style="cursor:'+(clickable?'pointer':'default')+';">';
+    html+='<div class="meas-card-head"><span class="meas-status">'+statusIcon+'</span><span class="meas-label">'+tp.label+'</span><span class="meas-date">'+dueDate.toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'})+'</span></div>';
+    html+='<div class="meas-card-status">'+statusText+'</div>';
+    
+    if(hasData){
+      html+='<div class="meas-values">';
+      MEASUREMENT_FIELDS.forEach(function(f){
+        var v=meas[tp.days][f.key];
+        if(v!==undefined&&v!==null&&v!==''){
+          html+='<div class="meas-val"><span class="meas-val-label">'+f.label+':</span> <strong>'+v+' '+f.unit+'</strong></div>';
+        }
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  
+  html+='</div>';
+  ep.innerHTML=html;
+}
+
+function openMeasurement(daysKey){
+  var meas=getMeasurements();
+  var data=meas[daysKey]||{};
+  var tp=MEASUREMENT_TIMEPOINTS.find(function(t){return t.days===daysKey;});
+  
+  document.getElementById('measModalTitle').textContent=tp.label+' measurements';
+  document.getElementById('measModalSub').textContent='Fill in what you have, leave blank what you don\'t';
+  
+  var formHtml='';
+  MEASUREMENT_FIELDS.forEach(function(f){
+    var val=data[f.key]!==undefined?data[f.key]:'';
+    formHtml+='<div class="meas-input-row"><label class="meas-input-label">'+f.label+' <span style="color:var(--text-dim);font-weight:400;">('+f.unit+')</span></label><input type="number" inputmode="decimal" step="'+f.step+'" id="meas_'+f.key+'" value="'+val+'" class="time-input" style="width:100%;text-align:left;padding:11px 12px;"></div>';
+  });
+  document.getElementById('measFormBody').innerHTML=formHtml;
+  document.getElementById('measDaysKey').value=daysKey;
+  document.getElementById('measModal').classList.add('open');
+}
+
+function saveMeasurement(){
+  var daysKey=parseInt(document.getElementById('measDaysKey').value);
+  var meas=getMeasurements();
+  if(!meas[daysKey])meas[daysKey]={};
+  var anyValue=false;
+  MEASUREMENT_FIELDS.forEach(function(f){
+    var v=document.getElementById('meas_'+f.key).value;
+    if(v!==''){
+      meas[daysKey][f.key]=parseFloat(v);
+      anyValue=true;
+    } else {
+      delete meas[daysKey][f.key];
+    }
+  });
+  if(!anyValue)delete meas[daysKey];
+  saveMeasurements(meas);
+  closeModal('measModal');
+  renderMeasurementsPanel();
+  showToast('✅','Measurements saved','tok');
+}
+
+function renderHistory(){
+  renderParamProgress();
+  var h=getHistory();
+  document.getElementById('histCount').textContent=h.length;
+  var list=document.getElementById('histList');
+  var sp=document.getElementById('statsPanel');
+  
+  if(h.length>0){
+    var total=h.length;
+    var n24=h.filter(function(x){return x.hours>=24;}).length;
+    var n16=h.filter(function(x){return x.hours>=16&&x.hours<24;}).length;
+    var n14=h.filter(function(x){return x.hours>=14&&x.hours<16;}).length;
+    var n12=h.filter(function(x){return x.hours>=12&&x.hours<14;}).length;
+    var n0=h.filter(function(x){return x.hours<12;}).length;
+    var pct=function(n){return Math.round(n/total*100);};
+    sp.innerHTML='<div class="stats-panel"><div class="stats-title">breakdown · '+total+' fast'+(total===1?'':'s')+' · targets in grey</div>'+
+      '<div class="stat-row"><span class="stat-icon">🔮</span><span class="stat-label">24h+</span><div class="stat-bar-wrap"><div class="stat-bar b24" style="width:'+pct(n24)+'%"></div></div><span class="stat-pct c24">'+pct(n24)+'%</span><span class="stat-target">/ 5%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">⭐</span><span class="stat-label">16h+</span><div class="stat-bar-wrap"><div class="stat-bar b16" style="width:'+pct(n16)+'%"></div></div><span class="stat-pct c16">'+pct(n16)+'%</span><span class="stat-target">/ 25%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">🔥</span><span class="stat-label">14h+</span><div class="stat-bar-wrap"><div class="stat-bar b14" style="width:'+pct(n14)+'%"></div></div><span class="stat-pct c14">'+pct(n14)+'%</span><span class="stat-target">/ 35%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">🌙</span><span class="stat-label">12h+</span><div class="stat-bar-wrap"><div class="stat-bar b12" style="width:'+pct(n12)+'%"></div></div><span class="stat-pct c12">'+pct(n12)+'%</span><span class="stat-target">/ 35%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">💤</span><span class="stat-label">&lt;12h</span><div class="stat-bar-wrap"><div class="stat-bar b0" style="width:'+pct(n0)+'%"></div></div><span class="stat-pct c0">'+pct(n0)+'%</span><span class="stat-target">/ 0%</span></div></div>';
+    renderProcessPanel(h,getExceptions());
+    renderExceptionPanel(getExceptions());
+    renderMeasurementsPanel();
+    renderPlanPanel(h,getExceptions());
+  } else {
+    sp.innerHTML='';
+    document.getElementById('procPanel').innerHTML='';
+    renderExceptionPanel(getExceptions());
+    renderMeasurementsPanel();
+    document.getElementById('planPanel').innerHTML='';
+  }
+  
+  if(!h.length){list.innerHTML='<div class="empty-msg">No fasts yet.<br>Start your first fast above.</div>';return;}
+  list.innerHTML=h.map(function(item,i){
+    var s=new Date(item.start),e=new Date(item.end),hrs=item.hours;
+    var icon=msIcon(hrs);
+    var bc='hb0',bl='Under 12h';
+    if(hrs>=24){bc='hb24';bl='24h+ 🔮';}
+    else if(hrs>=16){bc='hb16';bl='16h+ ⭐';}
+    else if(hrs>=14){bc='hb14';bl='14h+ 🔥';}
+    else if(hrs>=12){bc='hb12';bl='12h+ 🌙';}
+    return '<div class="hitem"><div><div class="hitem-date">'+fmtDate(s)+'</div><div class="hitem-times">'+fmt(s)+' → '+fmt(e)+'</div></div><div class="hitem-right"><div class="hitem-duration"><span class="hitem-icon">'+icon+'</span><span class="hitem-hours">'+hrs.toFixed(1)+'h</span></div><span class="hbadge '+bc+'">'+bl+'</span></div><div class="hitem-btns"><button class="hitem-edit" onclick="openEditHistory('+i+')">✏️</button><button class="hitem-del" onclick="deleteFast('+i+')">🗑️</button></div></div>';
+  }).join('');
+}
+
+function toggleHistory(){
+  historyOpen=!historyOpen;
+  document.getElementById('histPanel').className='history-panel'+(historyOpen?' open':'');
+  document.getElementById('histArrow').className='htog-right'+(historyOpen?' open':'');
+  if(historyOpen)setTab(activeTab); // refresh visible panel
+}
+
+function askClearHistory(){
+  showConfirm('Delete All','This will permanently delete all your past fasts. Make sure you have exported a backup first.','Delete','danger',function(){
+    localStorage.removeItem('slurp_history');renderHistory();showToast('🗑️','History cleared','');
+  });
+}
+
+function deleteFast(i){
+  showConfirm('Delete Fast','Delete this fast from your history? This cannot be undone.','Delete','danger',function(){
+    var h=getHistory();
+    h.splice(i,1);
+    saveHistoryArr(h);
+    renderHistory();
+    showToast('🗑️','Fast deleted','');
+  });
+}
+
+function openPasteImport(){
+  document.getElementById('pasteData').value='';
+  document.getElementById('pasteModal').classList.add('open');
+}
+
+function doPasteImport(){
+  var raw=document.getElementById('pasteData').value.trim();
+  if(!raw){showToast('⚠️','Nothing to import','terr');return;}
+  try{
+    // Strip outer quotes if pasted as quoted string
+    if((raw.startsWith('"')&&raw.endsWith('"'))||(raw.startsWith("'")&&raw.endsWith("'"))){
+      raw=raw.slice(1,-1);
+    }
+    // Unescape if needed
+    raw=raw.replace(/\\"/g,'"').replace(/\\\\/g,'\\');
+    var fasts=JSON.parse(raw);
+    if(!Array.isArray(fasts))throw new Error('Not an array');
+    fasts.forEach(function(f){
+      if(typeof f.start!=='number'||typeof f.end!=='number')throw new Error('Invalid entry shape');
+      if(typeof f.hours!=='number')f.hours=(f.end-f.start)/3600000;
+    });
+    var existing=getHistory();
+    var existingStarts={};
+    existing.forEach(function(f){existingStarts[f.start]=true;});
+    var added=0;
+    fasts.forEach(function(f){
+      if(!existingStarts[f.start]){
+        existing.push(f);
+        added++;
+      }
+    });
+    saveHistoryArr(existing);
+    renderHistory();
+    closeModal('pasteModal');
+    showToast('✅','Imported '+added+' fasts ('+fasts.length+' total in paste)','tok');
+  } catch(err){
+    showToast('⚠️','Import failed: '+err.message,'terr');
+  }
+}
+
+function buildPastExcSelects(){
+  var now=new Date();
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var sel=document.getElementById('pe_day');
+  sel.innerHTML='';
+  // Allow up to 90 days back so user can backfill 52+ days of history
+  for(var i=0;i<90;i++){
+    var d=new Date(now);d.setDate(d.getDate()-i);
+    var o=document.createElement('option');o.value=i;
+    if(i===0)o.textContent='Today';
+    else if(i===1)o.textContent='Yesterday';
+    else if(i<7)o.textContent=days[d.getDay()]+' '+d.getDate();
+    else o.textContent=d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    sel.appendChild(o);
+  }
+  var hsel=document.getElementById('pe_hour');hsel.innerHTML='';
+  for(var h=0;h<24;h++){var o=document.createElement('option');o.value=h;o.textContent=pad(h);hsel.appendChild(o);}
+  var msel=document.getElementById('pe_min');msel.innerHTML='';
+  for(var m=0;m<60;m+=5){var o=document.createElement('option');o.value=m;o.textContent=pad(m);msel.appendChild(o);}
+  // Default to current time
+  hsel.value=now.getHours();
+  msel.value=Math.round(now.getMinutes()/5)*5;
+}
+
+function openAddPastException(){
+  buildPastExcSelects();
+  document.getElementById('pastExcModal').classList.add('open');
+}
+
+function savePastException(){
+  var type=document.getElementById('pe_type').value;
+  var da=parseInt(document.getElementById('pe_day').value)||0;
+  var h=parseInt(document.getElementById('pe_hour').value)||0;
+  var m=parseInt(document.getElementById('pe_min').value)||0;
+  var d=new Date();d.setDate(d.getDate()-da);d.setHours(h,m,0,0);
+  if(d.getTime()>Date.now()){showToast('⚠️','Time cannot be in the future','terr');return;}
+  var exc=getExceptions();
+  exc.unshift({type:type,timestamp:d.getTime()});
+  saveExceptions(exc);
+  closeModal('pastExcModal');
+  renderHistory();
+  showToast(EXCEPTIONS[type].icon,'Past exception logged','tok');
+}
+
+function exportData(){
+  var h=getHistory();
+  var e=getExceptions();
+  var m=getMeasurements();
+  if(!h.length&&!e.length&&Object.keys(m).length===0){showToast('⚠️','No data to export','terr');return;}
+  var data={version:4,exported:new Date().toISOString(),fasts:h,exceptions:e,measurements:m};
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='slurp-backup-'+new Date().toISOString().split('T')[0]+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('💾','Backup saved ('+h.length+' fasts, '+e.length+' exceptions, '+Object.keys(m).length+' measurements)','tok');
+}
+
+function importData(){
+  document.getElementById('importFile').click();
+}
+
+function handleImport(event){
+  var file=event.target.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      var fasts=data.fasts||(Array.isArray(data)?data:[]);
+      var excs=data.exceptions||[];
+      if(!Array.isArray(fasts))throw new Error('Invalid format');
+      // Validate basic shape
+      fasts.forEach(function(f){
+        if(typeof f.start!=='number'||typeof f.end!=='number'||typeof f.hours!=='number')
+          throw new Error('Invalid fast entry');
+      });
+      var existing=getHistory();
+      var existingStarts={};
+      existing.forEach(function(f){existingStarts[f.start]=true;});
+      var added=0;
+      fasts.forEach(function(f){
+        if(!existingStarts[f.start]){
+          existing.push(f);
+          added++;
+        }
+      });
+      saveHistoryArr(existing);
+      
+      // Import exceptions too
+      var existingExc=getExceptions();
+      var existingExcStamps={};
+      existingExc.forEach(function(e){existingExcStamps[e.timestamp]=true;});
+      var addedExc=0;
+      excs.forEach(function(e){
+        if(!existingExcStamps[e.timestamp]&&EXCEPTIONS[e.type]){
+          existingExc.push(e);
+          addedExc++;
+        }
+      });
+      saveExceptions(existingExc);
+      
+      // Import measurements (overwrites existing, since they're per-timepoint)
+      if(data.measurements&&typeof data.measurements==='object'){
+        var existingMeas=getMeasurements();
+        Object.keys(data.measurements).forEach(function(k){
+          existingMeas[k]=data.measurements[k];
+        });
+        saveMeasurements(existingMeas);
+      }
+      
+      renderHistory();
+      showToast('✅','Imported '+added+' fasts, '+addedExc+' exceptions','tok');
+    } catch(err){
+      showToast('⚠️','Import failed: '+err.message,'terr');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function toggleFast(){
+  if(!fastStart){
+    fastStart=Date.now();
+    notified={12:false,14:false,16:false,24:false};
+    localStorage.setItem('slurp_start',fastStart);
+    saveNotified();
+    document.getElementById('recBanner').classList.add('hidden');
+    setFastingUI();tick();
+    ticker=setInterval(tick,1000);
+    showToast('🌙','Fast started!','tok');
+    if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+  } else {
+    var hours=(Date.now()-fastStart)/3600000;
+    saveHistory(fastStart,Date.now(),hours);
+    stopFast();
+    showToast('✅','Fast saved. Enjoy your meal!','tok');
+    setTimeout(checkRecommendation,400);
+  }
+}
+
+function stopFast(){
+  clearInterval(ticker);ticker=null;
+  fastStart=null;notified={12:false,14:false,16:false,24:false};
+  localStorage.removeItem('slurp_start');
+  localStorage.removeItem('slurp_notified');
+  setEatingUI();renderHistory();
+}
+
+function setFastingUI(){
+  document.getElementById('statusPill').className='status-pill fasting';
+  document.getElementById('statusTxt').textContent='Fasting';
+  document.getElementById('bigTimer').classList.add('active');
+  document.getElementById('mainBtn').className='thumb-btn stop';
+  document.getElementById('btnIcon').textContent='☀️';
+  document.getElementById('btnLabel').textContent='Start Eating';
+  document.getElementById('adjustRow').classList.remove('hidden');
+  document.getElementById('timerSub').textContent='hours fasted';
+  updateCards();
+}
+
+function setEatingUI(){
+  document.getElementById('statusPill').className='status-pill eating';
+  document.getElementById('statusTxt').textContent='Eating Window';
+  document.getElementById('bigTimer').classList.remove('active');
+  document.getElementById('bigTimer').textContent='00:00:00';
+  document.getElementById('mainBtn').className='thumb-btn start';
+  document.getElementById('btnIcon').textContent='🌙';
+  document.getElementById('btnLabel').textContent='Start Fasting';
+  document.getElementById('adjustRow').classList.add('hidden');
+  document.getElementById('startVal').textContent='—';
+  document.getElementById('targetVal').textContent='—';
+  document.getElementById('timerSub').textContent='tap after your last meal of the day';
+}
+
+// Migration: handle old "13h" notification key gracefully
+function migrateNotified(){
+  var sn=JSON.parse(localStorage.getItem('slurp_notified')||'{}');
+  // Old keys: 12,13,14,16. New keys: 12,14,16,24. Just preserve what we can.
+  notified={12:!!sn[12],14:!!sn[14],16:!!sn[16],24:!!sn[24]};
+}
+
+function loadState(){
+  buildSelects();
+  var s=localStorage.getItem('slurp_start');
+  if(s){
+    fastStart=parseInt(s);
+    migrateNotified();
+    setFastingUI();tick();
+    ticker=setInterval(tick,1000);
+  } else {
+    checkRecommendation();
+  }
+  setTab('break');
+  renderHistory();
+}
+
+
+// === ONE-TIME DATA RESTORE (auto-loads on first run if no existing data) ===
+var EMBEDDED_FASTS=[{"start":1777125600000,"end":1777192927454,"hours":18.702070555555554},{"start":1777055269119,"end":1777107343576,"hours":14.465126944444444},{"start":1776969000000,"end":1777015800000,"hours":13},{"start":1776882900000,"end":1776927900000,"hours":12.5},{"start":1776783600000,"end":1776843022236,"hours":16.506176666666665},{"start":1776708900000,"end":1776756000000,"hours":13.083333333333334},{"start":1776620700000,"end":1776671329271,"hours":14.06368638888889},{"start":1776538011403,"end":1776584953586,"hours":13.039495277777778},{"start":1776446700000,"end":1776497564111,"hours":14.128919722222221},{"start":1776362776601,"end":1776410355408,"hours":13.216335277777779},{"start":1776275100000,"end":1776321947452,"hours":13.01318111111111},{"start":1776196200000,"end":1776240008894,"hours":12.169137222222222},{"start":1776102918562,"end":1776153337976,"hours":14.005392777777777},{"start":1776018357483,"end":1776065829478,"hours":13.186665277777777},{"start":1775933400000,"end":1775980800000,"hours":13.166666666666666},{"start":1775841900000,"end":1775894872948,"hours":14.714707777777777},{"start":1775755864851,"end":1775802829211,"hours":13.045655555555555},{"start":1775675568545,"end":1775718783403,"hours":12.004127222222222},{"start":1775582400000,"end":1775633047523,"hours":14.06875638888889},{"start":1775489400000,"end":1775547600000,"hours":16.166666666666668},{"start":1775415600000,"end":1775460366200,"hours":12.435055555555556},{"start":1775326500000,"end":1775371500000,"hours":12.5},{"start":1775241300000,"end":1775284800000,"hours":12.083333333333334},{"start":1775151600000,"end":1775195590913,"hours":12.219698055555556},{"start":1775065589960,"end":1775110880331,"hours":12.580658611111112},{"start":1774978800000,"end":1775029208141,"hours":14.002261388888888},{"start":1774899900000,"end":1774946883519,"hours":13.0509775},{"start":1774805400000,"end":1774856230756,"hours":14.119654444444445},{"start":1774725080185,"end":1774772410470,"hours":13.14730138888889},{"start":1774637700000,"end":1774684561353,"hours":13.017042222222223},{"start":1774551105255,"end":1774601526137,"hours":14.005800277777778},{"start":1774462800000,"end":1774509900000,"hours":13.083333333333334},{"start":1774379156153,"end":1774430353928,"hours":14.221604166666667},{"start":1774292026332,"end":1774338872140,"hours":13.012724166666667},{"start":1774204768840,"end":1774249218920,"hours":12.347244444444444},{"start":1774119900000,"end":1774165628079,"hours":12.702244166666667},{"start":1774031839453,"end":1774078656241,"hours":13.004663333333333},{"start":1773953314897,"end":1774013118850,"hours":16.612209166666666},{"start":1773858464698,"end":1773904520684,"hours":12.793329444444444},{"start":1773774600000,"end":1773819530979,"hours":12.4808275},{"start":1773686444272,"end":1773733865521,"hours":13.172569166666667},{"start":1773591600000,"end":1773649205523,"hours":16.001534166666666},{"start":1773513414031,"end":1773560220371,"hours":13.001761111111112},{"start":1773429189432,"end":1773472391512,"hours":12.000577777777778},{"start":1773329100000,"end":1773387237386,"hours":16.14927388888889},{"start":1773253218364,"end":1773305955600,"hours":14.649232222222222},{"start":1773169298053,"end":1773217129510,"hours":13.286515833333333},{"start":1773081810161,"end":1773126312023,"hours":12.361628333333334},{"start":1772996400000,"end":1773047700000,"hours":14.25},{"start":1772910600000,"end":1772970503735,"hours":16.639926388888888},{"start":1772822700000,"end":1772874300000,"hours":14.333333333333334},{"start":1772736300000,"end":1772787600000,"hours":14.25}];
+function autoRestoreEmbedded(){
+  var existing=JSON.parse(localStorage.getItem('slurp_history')||'[]');
+  // Only auto-import if there's no data yet AND we haven't done this before
+  if(existing.length===0 && !localStorage.getItem('slurp_embedded_loaded')){
+    localStorage.setItem('slurp_history',JSON.stringify(EMBEDDED_FASTS));
+    localStorage.setItem('slurp_embedded_loaded','1');
+    console.log('Restored '+EMBEDDED_FASTS.length+' fasts from embedded backup');
+  }
+}
+autoRestoreEmbedded();
+
+loadState();
+</script>
+</body>
+</html>
