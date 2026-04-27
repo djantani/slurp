@@ -545,12 +545,17 @@ function integrateActivation(fn,fastHours){
 // Targets = work level produced by 16:8 trial participants (gross minus diet stress)
 // Fat ox/mTOR/ketones positive (drive measured outcomes in trials)
 // GH/autophagy can be negative (Western diet eats them - trials don't show these benefits)
+// === MONTHLY TARGETS ===
+// Fat ox / mTOR / ketones: dirty 16:8 net (trial-validated outcome level)
+// GH / autophagy: clean 16:8 reference (positive scale - dirty trials produce ~zero of these)
+// Beating these means your protocol is delivering meaningful GH/autophagy work
+// that typical 16:8 trial participants do not achieve.
 var MONTHLY_TARGETS={
   fatox:9440,
   mtor:1570,
   ketones:554,
-  gh:-980,
-  autophagy:-440
+  gh:900,
+  autophagy:630
 };
 
 var MEASURABLE_KEYS=['fatox','mtor','ketones'];
@@ -667,9 +672,8 @@ function renderMilestoneCard(){
     });
   });
   
-  // Calendar days tracked
-  var firstFast=history[history.length-1];
-  var actualDays=(Date.now()-firstFast.start)/86400000;
+  // Day count = number of fast entries (each fast = 1 day of protocol)
+  var actualDays = history.length;
   
   // Milestone gating: advance when ALL 3 measurable params reach 100% of NET target
   // (NET target = 16:8 trial-validated outcome level)
@@ -724,45 +728,29 @@ function renderMilestoneCard(){
     var elapsedInSlice = actualDays - sliceStartDay;
     var pacePct = Math.min(100, Math.max(0, elapsedInSlice/sliceLengthDays*100));
     
-    // Param bars - cumulative progress toward target
+    // Param bars - cumulative progress toward target, red line at calendar pace
     PROCESSES.forEach(function(p){
       var actual=totals[p.key];
       var msTarget = MONTHLY_TARGETS[p.key]*targetN;
       var prevTarget = lastMs ? MONTHLY_TARGETS[p.key]*lastMs : 0;
+      var actualInSlice = Math.max(0, actual - prevTarget);
+      var sliceSize = msTarget - prevTarget;
+      var pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
+      var barPct = Math.min(100, pct);
       var isMeasurable = MEASURABLE_KEYS.indexOf(p.key)>=0;
       
-      var pct, barPct, pctClass, displayLabel;
-      
-      if(msTarget > 0){
-        // Positive target - normal % display
-        var actualInSlice = Math.max(0, actual - prevTarget);
-        var sliceSize = msTarget - prevTarget;
-        pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
-        barPct = Math.min(100, pct);
-        pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
-        displayLabel = pct + '%';
-      } else {
-        // Negative target (dirty 16:8 net is negative) - show absolute units delivered
-        // Bar fills based on how much positive work you've delivered (clean dominates)
-        // Compare to a "good clean" reference of ~1500 GH or 1000 autophagy per 3mo
-        var cleanReference = p.key === 'gh' ? 4500 : 3000; // 3-month clean reference
-        pct = Math.round(actual / cleanReference * 100);
-        barPct = Math.min(100, Math.max(0, pct));
-        pctClass = actual > 0 ? 'ahead' : 'behind';
-        displayLabel = Math.round(actual) + ' u';
-      }
+      // 5% tolerance: green if within 5% behind pace or ahead, orange if more than 5% behind
+      var pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
       
       html+='<div class="ms-param-row">';
       html+='<div class="ms-param-head">';
       html+='<span class="ms-param-icon">'+p.icon+'</span>';
-      html+='<span class="ms-param-name">'+p.name+(isMeasurable?'':' <span style="color:var(--text-dim);font-size:0.65rem;font-weight:400;">(clean dominates)</span>')+'</span>';
-      html+='<span class="ms-param-pct '+pctClass+'">'+displayLabel+'</span>';
+      html+='<span class="ms-param-name">'+p.name+'</span>';
+      html+='<span class="ms-param-pct '+pctClass+'">'+pct+'%</span>';
       html+='</div>';
       html+='<div class="ms-param-bar-wrap">';
       html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
-      if(msTarget > 0){
-        html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="16:8 trial pace"></div>';
-      }
+      html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Calendar pace at day '+Math.floor(actualDays)+'"></div>';
       html+='</div>';
       html+='</div>';
     });
@@ -795,7 +783,7 @@ function renderMilestoneCard(){
       html+='<div class="ms-pace-text">'+paceText+'</div>';
     }
     
-    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = 16:8 trial pace (with Western diet stress). Pass this red line and you\'re delivering more than 16:8 trials - so outcomes arrive faster.</div>';
+    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = calendar pace at day '+Math.floor(actualDays)+' of 90. Fat ox/mTOR/ketones target = dirty 16:8 trial level. GH/autophagy target = clean 16:8 (dirty trials produce ~zero of these).</div>';
     
     if(nextDesc){
       html+='<div class="ms-target-desc"><strong>When reached:</strong> '+nextDesc+'</div>';
@@ -1383,7 +1371,7 @@ function renderHistory(){
     else if(hrs>=16){bc='hb16';bl='16h+ ⭐';}
     else if(hrs>=14){bc='hb14';bl='14h+ 🔥';}
     else if(hrs>=12){bc='hb12';bl='12h+ 🌙';}
-    return '<div class="hitem"><div><div class="hitem-date">'+fmtDate(s)+'</div><div class="hitem-times">'+fmt(s)+' → '+fmt(e)+'</div></div><div class="hitem-right"><div class="hitem-duration"><span class="hitem-icon">'+icon+'</span><span class="hitem-hours">'+hrs.toFixed(1)+'h</span></div><span class="hbadge '+bc+'">'+bl+'</span></div><div class="hitem-btns"><button class="hitem-edit" onclick="openEditHistory('+i+')">✏️</button><button class="hitem-del" onclick="deleteFast('+i+')">🗑️</button></div></div>';
+    return '<div class="hitem"><div><div class="hitem-date">'+fmtDate(e)+'</div><div class="hitem-times">'+fmt(s)+' → '+fmt(e)+'</div></div><div class="hitem-right"><div class="hitem-duration"><span class="hitem-icon">'+icon+'</span><span class="hitem-hours">'+hrs.toFixed(1)+'h</span></div><span class="hbadge '+bc+'">'+bl+'</span></div><div class="hitem-btns"><button class="hitem-edit" onclick="openEditHistory('+i+')">✏️</button><button class="hitem-del" onclick="deleteFast('+i+')">🗑️</button></div></div>';
   }).join('');
 }
 
