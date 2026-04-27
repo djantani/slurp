@@ -435,42 +435,46 @@ var MS={
 // Returns % activation at given clock fast hours
 function actAutophagy(h){
   if(h<12)return 0;
-  if(h<16)return 5*(h-12)/4;
-  if(h<20)return 5+35*(h-16)/4;
-  if(h<24)return 40+25*(h-20)/4;
-  if(h<36)return 65+10*(h-24)/12;
-  if(h<48)return 75+10*(h-36)/12;
-  return Math.min(95,85+10*(h-48)/24);
+  if(h<14)return 3*(h-12)/2;
+  if(h<16)return 3+12*(h-14)/2;
+  if(h<20)return 15+35*(h-16)/4;
+  if(h<24)return 50+25*(h-20)/4;
+  return 90;
 }
 function actKetones(h){
   if(h<8)return 0;
   if(h<12)return 5*(h-8)/4;
-  if(h<16)return 5+15*(h-12)/4;
-  if(h<24)return 20+30*(h-16)/8;
-  if(h<48)return 50+30*(h-24)/24;
-  return Math.min(95,80+15*(h-48)/24);
+  if(h<14)return 5+5*(h-12)/2;
+  if(h<16)return 10+15*(h-14)/2;
+  if(h<20)return 25+30*(h-16)/4;
+  if(h<24)return 55+25*(h-20)/4;
+  return 90;
 }
 function actGH(h){
   if(h<12)return 0;
-  if(h<16)return 10*(h-12)/4;
-  if(h<24)return 10+60*(h-16)/8;
-  if(h<48)return 70+25*(h-24)/24;
+  if(h<14)return 5*(h-12)/2;
+  if(h<16)return 5+15*(h-14)/2;
+  if(h<20)return 20+40*(h-16)/4;
+  if(h<24)return 60+25*(h-20)/4;
   return 95;
 }
 function actMTOR(h){
   if(h<8)return 0;
   if(h<12)return 10*(h-8)/4;
-  if(h<16)return 10+20*(h-12)/4;
-  if(h<24)return 30+40*(h-16)/8;
-  if(h<48)return 70+25*(h-24)/24;
-  return 95;
+  if(h<14)return 10+10*(h-12)/2;
+  if(h<16)return 20+15*(h-14)/2;
+  if(h<20)return 35+30*(h-16)/4;
+  if(h<24)return 65+20*(h-20)/4;
+  return 90;
 }
 function actFatox(h){
   if(h<4)return 0;
-  if(h<8)return 20*(h-4)/4;
-  if(h<12)return 20+30*(h-8)/4;
-  if(h<16)return 50+30*(h-12)/4;
-  if(h<24)return 80+15*(h-16)/8;
+  if(h<8)return 25*(h-4)/4;
+  if(h<12)return 25+25*(h-8)/4;
+  if(h<14)return 50+10*(h-12)/2;
+  if(h<16)return 60+15*(h-14)/2;
+  if(h<20)return 75+15*(h-16)/4;
+  if(h<24)return 90+5*(h-20)/4;
   return 95;
 }
 
@@ -493,32 +497,32 @@ var EXCEPTIONS={
   sugar:{
     icon:'🍰',label:'Sugar bolus',
     desc:'Dessert, sugary drink, sweet pastry, processed sweet, fruit juice',
-    cost:{fatox:9,mtor:23,ketones:35,gh:12,autophagy:18}
+    cost:{fatox:40,mtor:15,ketones:12,gh:6,autophagy:4}
   },
   processed:{
     icon:'🍕',label:'Processed meal',
     desc:'Fast food, pizza, burger, fried food, refined carb-heavy meal',
-    cost:{fatox:23,mtor:44,ketones:58,gh:18,autophagy:23}
+    cost:{fatox:100,mtor:30,ketones:30,gh:20,autophagy:12}
   },
   alcohol:{
     icon:'🍷',label:'Alcohol (>1 drink)',
     desc:'2+ drinks: beer, wine, spirits, cocktails',
-    cost:{fatox:44,mtor:35,ketones:82,gh:29,autophagy:53}
+    cost:{fatox:130,mtor:60,ketones:45,gh:130,autophagy:70}
   },
   alcohol_light:{
     icon:'🥂',label:'1 drink',
     desc:'Single glass of wine, half pint, single spirit',
-    cost:{fatox:15,mtor:12,ketones:29,gh:9,autophagy:15}
+    cost:{fatox:40,mtor:20,ketones:12,gh:50,autophagy:25}
   },
   late:{
     icon:'🌙',label:'Late eating',
     desc:'Eating within 2h of sleep, disrupts overnight repair',
-    cost:{fatox:12,mtor:18,ketones:23,gh:23,autophagy:18}
+    cost:{fatox:35,mtor:25,ketones:15,gh:50,autophagy:30}
   },
   heavy:{
     icon:'💥',label:'Heavy day',
     desc:'Multiple exceptions stacked: e.g. pizza + beer + dessert',
-    cost:{fatox:73,mtor:88,ketones:146,gh:58,autophagy:102}
+    cost:{fatox:210,mtor:100,ketones:70,gh:140,autophagy:70}
   }
 };
 
@@ -537,17 +541,16 @@ function integrateActivation(fn,fastHours){
   return total;
 }
 
-// === MONTHLY TARGETS (16:8 DIRTY = NET = trial-validated outcome level) ===
-// Targets = work level that 16:8 trial participants delivered to produce measured outcomes
-// (gross 16:8 minus typical Western diet stress).
-// For fat ox / mTOR / ketones: gross minus stress (20-27% subtraction).
-// For GH / autophagy: gross (daytime exceptions don't reach these threshold processes).
+// === MONTHLY TARGETS (dirty 16:8 = 16:8 with typical Western diet stress) ===
+// Targets = work level produced by 16:8 trial participants (gross minus diet stress)
+// Fat ox/mTOR/ketones positive (drive measured outcomes in trials)
+// GH/autophagy can be negative (Western diet eats them - trials don't show these benefits)
 var MONTHLY_TARGETS={
-  fatox:10575,
-  mtor:2195,
-  ketones:1368,
-  gh:600,
-  autophagy:300
+  fatox:9440,
+  mtor:1570,
+  ketones:554,
+  gh:-980,
+  autophagy:-440
 };
 
 var MEASURABLE_KEYS=['fatox','mtor','ketones'];
@@ -721,29 +724,45 @@ function renderMilestoneCard(){
     var elapsedInSlice = actualDays - sliceStartDay;
     var pacePct = Math.min(100, Math.max(0, elapsedInSlice/sliceLengthDays*100));
     
-    // Param bars - cumulative progress toward NET target
+    // Param bars - cumulative progress toward target
     PROCESSES.forEach(function(p){
       var actual=totals[p.key];
       var msTarget = MONTHLY_TARGETS[p.key]*targetN;
       var prevTarget = lastMs ? MONTHLY_TARGETS[p.key]*lastMs : 0;
-      var actualInSlice = Math.max(0, actual - prevTarget);
-      var sliceSize = msTarget - prevTarget;
-      var pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
-      var barPct = Math.min(100, pct);
       var isMeasurable = MEASURABLE_KEYS.indexOf(p.key)>=0;
       
-      // 5% tolerance: green if within 5% behind pace or ahead, orange if more than 5% behind
-      var pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
+      var pct, barPct, pctClass, displayLabel;
+      
+      if(msTarget > 0){
+        // Positive target - normal % display
+        var actualInSlice = Math.max(0, actual - prevTarget);
+        var sliceSize = msTarget - prevTarget;
+        pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
+        barPct = Math.min(100, pct);
+        pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
+        displayLabel = pct + '%';
+      } else {
+        // Negative target (dirty 16:8 net is negative) - show absolute units delivered
+        // Bar fills based on how much positive work you've delivered (clean dominates)
+        // Compare to a "good clean" reference of ~1500 GH or 1000 autophagy per 3mo
+        var cleanReference = p.key === 'gh' ? 4500 : 3000; // 3-month clean reference
+        pct = Math.round(actual / cleanReference * 100);
+        barPct = Math.min(100, Math.max(0, pct));
+        pctClass = actual > 0 ? 'ahead' : 'behind';
+        displayLabel = Math.round(actual) + ' u';
+      }
       
       html+='<div class="ms-param-row">';
       html+='<div class="ms-param-head">';
       html+='<span class="ms-param-icon">'+p.icon+'</span>';
-      html+='<span class="ms-param-name">'+p.name+(isMeasurable?'':' <span style="color:var(--text-dim);font-size:0.65rem;font-weight:400;">(non-gating)</span>')+'</span>';
-      html+='<span class="ms-param-pct '+pctClass+'">'+pct+'%</span>';
+      html+='<span class="ms-param-name">'+p.name+(isMeasurable?'':' <span style="color:var(--text-dim);font-size:0.65rem;font-weight:400;">(clean dominates)</span>')+'</span>';
+      html+='<span class="ms-param-pct '+pctClass+'">'+displayLabel+'</span>';
       html+='</div>';
       html+='<div class="ms-param-bar-wrap">';
       html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
-      html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Where strict 16:8 would be on day '+Math.floor(actualDays)+'"></div>';
+      if(msTarget > 0){
+        html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="16:8 trial pace"></div>';
+      }
       html+='</div>';
       html+='</div>';
     });
