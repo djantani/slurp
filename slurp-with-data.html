@@ -136,10 +136,10 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 .stat-label{font-size:0.74rem;color:var(--text-dim);min-width:32px;flex-shrink:0;}
 .stat-bar-wrap{flex:1;background:rgba(255,255,255,0.05);border-radius:100px;height:7px;overflow:hidden;}
 .stat-bar{height:100%;border-radius:100px;transition:width 0.6s ease;}
-.stat-bar.b24{background:var(--warn24);}.stat-bar.b16{background:var(--warn16);}.stat-bar.b14{background:var(--warn14);}.stat-bar.b12{background:var(--warn12);}.stat-bar.b0{background:rgba(255,255,255,0.15);}
+.stat-bar.b24{background:var(--warn24);}.stat-bar.b18{background:#a78bfa;}.stat-bar.b16{background:var(--warn16);}.stat-bar.b14{background:var(--warn14);}.stat-bar.b12{background:var(--warn12);}.stat-bar.b0{background:rgba(255,255,255,0.15);}
 .stat-pct{font-size:0.74rem;font-weight:500;min-width:34px;text-align:right;flex-shrink:0;}
 .stat-target{font-size:0.5rem;color:var(--text-dim);min-width:28px;text-align:right;flex-shrink:0;opacity:0.6;}
-.stat-pct.c24{color:var(--warn24);}.stat-pct.c16{color:var(--warn16);}.stat-pct.c14{color:var(--warn14);}.stat-pct.c12{color:var(--warn12);}.stat-pct.c0{color:var(--text-dim);}
+.stat-pct.c24{color:var(--warn24);}.stat-pct.c18{color:#a78bfa;}.stat-pct.c16{color:var(--warn16);}.stat-pct.c14{color:var(--warn14);}.stat-pct.c12{color:var(--warn12);}.stat-pct.c0{color:var(--text-dim);}
 
 .proc-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;}
 .proc-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
@@ -435,10 +435,11 @@ var MS={
 // Returns % activation at given clock fast hours
 function actAutophagy(h){
   if(h<12)return 0;
-  if(h<14)return 3*(h-12)/2;
-  if(h<16)return 3+12*(h-14)/2;
-  if(h<20)return 15+35*(h-16)/4;
-  if(h<24)return 50+25*(h-20)/4;
+  if(h<14)return 8*(h-12)/2;
+  if(h<16)return 8+17*(h-14)/2;
+  if(h<18)return 25+20*(h-16)/2;
+  if(h<20)return 45+15*(h-18)/2;
+  if(h<24)return 60+20*(h-20)/4;
   return 90;
 }
 function actKetones(h){
@@ -452,11 +453,12 @@ function actKetones(h){
 }
 function actGH(h){
   if(h<12)return 0;
-  if(h<14)return 5*(h-12)/2;
-  if(h<16)return 5+15*(h-14)/2;
-  if(h<20)return 20+40*(h-16)/4;
-  if(h<24)return 60+25*(h-20)/4;
-  return 95;
+  if(h<14)return 8*(h-12)/2;
+  if(h<16)return 8+17*(h-14)/2;
+  if(h<18)return 25+20*(h-16)/2;
+  if(h<20)return 45+15*(h-18)/2;
+  if(h<24)return 60+20*(h-20)/4;
+  return 90;
 }
 function actMTOR(h){
   if(h<8)return 0;
@@ -554,8 +556,8 @@ var MONTHLY_TARGETS={
   fatox:9440,
   mtor:1570,
   ketones:554,
-  gh:900,
-  autophagy:630
+  gh:1230,
+  autophagy:1230
 };
 
 var MEASURABLE_KEYS=['fatox','mtor','ketones'];
@@ -1339,16 +1341,18 @@ function renderHistory(){
   if(h.length>0){
     var total=h.length;
     var n24=h.filter(function(x){return x.hours>=24;}).length;
-    var n16=h.filter(function(x){return x.hours>=16&&x.hours<24;}).length;
+    var n18=h.filter(function(x){return x.hours>=18&&x.hours<24;}).length;
+    var n16=h.filter(function(x){return x.hours>=16&&x.hours<18;}).length;
     var n14=h.filter(function(x){return x.hours>=14&&x.hours<16;}).length;
     var n12=h.filter(function(x){return x.hours>=12&&x.hours<14;}).length;
     var n0=h.filter(function(x){return x.hours<12;}).length;
     var pct=function(n){return Math.round(n/total*100);};
     sp.innerHTML='<div class="stats-panel"><div class="stats-title">breakdown · '+total+' fast'+(total===1?'':'s')+' · targets in grey</div>'+
-      '<div class="stat-row"><span class="stat-icon">🔮</span><span class="stat-label">24h+</span><div class="stat-bar-wrap"><div class="stat-bar b24" style="width:'+pct(n24)+'%"></div></div><span class="stat-pct c24">'+pct(n24)+'%</span><span class="stat-target">/ 5%</span></div>'+
-      '<div class="stat-row"><span class="stat-icon">⭐</span><span class="stat-label">16h+</span><div class="stat-bar-wrap"><div class="stat-bar b16" style="width:'+pct(n16)+'%"></div></div><span class="stat-pct c16">'+pct(n16)+'%</span><span class="stat-target">/ 25%</span></div>'+
-      '<div class="stat-row"><span class="stat-icon">🔥</span><span class="stat-label">14h+</span><div class="stat-bar-wrap"><div class="stat-bar b14" style="width:'+pct(n14)+'%"></div></div><span class="stat-pct c14">'+pct(n14)+'%</span><span class="stat-target">/ 35%</span></div>'+
-      '<div class="stat-row"><span class="stat-icon">🌙</span><span class="stat-label">12h+</span><div class="stat-bar-wrap"><div class="stat-bar b12" style="width:'+pct(n12)+'%"></div></div><span class="stat-pct c12">'+pct(n12)+'%</span><span class="stat-target">/ 35%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">🔮</span><span class="stat-label">24h+</span><div class="stat-bar-wrap"><div class="stat-bar b24" style="width:'+pct(n24)+'%"></div></div><span class="stat-pct c24">'+pct(n24)+'%</span><span class="stat-target">/ 1.5%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">✨</span><span class="stat-label">18h+</span><div class="stat-bar-wrap"><div class="stat-bar b18" style="width:'+pct(n18)+'%"></div></div><span class="stat-pct c18">'+pct(n18)+'%</span><span class="stat-target">/ 3.5%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">⭐</span><span class="stat-label">16h+</span><div class="stat-bar-wrap"><div class="stat-bar b16" style="width:'+pct(n16)+'%"></div></div><span class="stat-pct c16">'+pct(n16)+'%</span><span class="stat-target">/ 10%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">🔥</span><span class="stat-label">14h+</span><div class="stat-bar-wrap"><div class="stat-bar b14" style="width:'+pct(n14)+'%"></div></div><span class="stat-pct c14">'+pct(n14)+'%</span><span class="stat-target">/ 30%</span></div>'+
+      '<div class="stat-row"><span class="stat-icon">🌙</span><span class="stat-label">12h+</span><div class="stat-bar-wrap"><div class="stat-bar b12" style="width:'+pct(n12)+'%"></div></div><span class="stat-pct c12">'+pct(n12)+'%</span><span class="stat-target">/ 55%</span></div>'+
       '<div class="stat-row"><span class="stat-icon">💤</span><span class="stat-label">&lt;12h</span><div class="stat-bar-wrap"><div class="stat-bar b0" style="width:'+pct(n0)+'%"></div></div><span class="stat-pct c0">'+pct(n0)+'%</span><span class="stat-target">/ 0%</span></div></div>';
     renderProcessPanel(h,getExceptions());
     renderExceptionPanel(getExceptions());
