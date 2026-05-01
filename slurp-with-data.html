@@ -335,11 +335,6 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 
 <!-- BOTTOM -->
 <div class="bottom-section">
-  <button class="thumb-btn start" id="mainBtn" onclick="toggleFast()">
-    <span class="thumb-btn-icon" id="btnIcon">🌙</span>
-    <span class="thumb-btn-label" id="btnLabel">Start Fasting</span>
-  </button>
-
   <div class="history-toggle" onclick="toggleHistory()">
     <span class="htog-left">📋 &nbsp;Past Fasts (<span id="histCount">0</span>)</span>
     <span class="htog-right" id="histArrow">▾</span>
@@ -681,7 +676,7 @@ var MILESTONES=[
 // Annual = days × per-day rate; pro-rate for 3/6 month checkpoints.
 var LONGEVITY_BANDS={
   autophagy:[
-    {name:'Baseline',  min:0,    max:50,   color:'#94a3b8',
+    {name:'Baseline',  min:0,    max:50,   color:'#ffffff',
      desc:'Standard living, no fasting effect on cellular cleanup.'},
     {name:'Bronze',    min:50,   max:150,  color:'#a16207',
      desc:'Detectable cellular cleanup. Some mitochondrial turnover. Subtle but real.'},
@@ -691,7 +686,7 @@ var LONGEVITY_BANDS={
      desc:'Optimal autophagy load. Strong cellular maintenance, additional hours give diminishing returns.'}
   ],
   gh:[
-    {name:'Baseline',  min:0,    max:50,   color:'#94a3b8',
+    {name:'Baseline',  min:0,    max:50,   color:'#ffffff',
      desc:'Standard living, no fasting effect on GH pulses.'},
     {name:'Bronze',    min:50,   max:150,  color:'#a16207',
      desc:'Some muscle preservation during fat loss.'},
@@ -963,9 +958,26 @@ function renderMilestoneCard(){
       html+='<div class="ms-pace-text">'+paceText+'</div>';
     }
     
+    // Start Fasting button placed here — between bars/pace and descriptions
+    html+='<div style="margin:14px 0;text-align:center;">'+
+      '<button class="thumb-btn start" id="mainBtn" onclick="toggleFast()" style="display:inline-flex;width:auto;padding:10px 24px;">'+
+        '<span class="thumb-btn-icon" id="btnIcon">🌙</span>'+
+        '<span class="thumb-btn-label" id="btnLabel">Start Fasting</span>'+
+      '</button>'+
+    '</div>';
+    
     html+='<div class="ms-legend"><span class="ms-legend-line"></span> = dirty 16:8 calendar pace at day '+Math.floor(actualDays)+' of '+(sliceStartDay+sliceLengthDays)+'. Fat ox/mTOR/ketones target = dirty 16:8 trial level. GH/autophagy target = clean 16:8.</div>';
     
     html+='<div class="ms-target-desc"><strong>Objective '+targetN+' definition:</strong> '+nextObj.desc+'</div>';
+    
+    // Longevity band definitions (only show if autophagy/GH bars are visible)
+    html+='<div style="margin-top:10px;padding:10px;background:rgba(148,163,184,0.06);border-radius:8px;font-size:0.78rem;line-height:1.5;color:var(--text2);">';
+    html+='<div style="font-weight:600;color:var(--text);margin-bottom:6px;">Autophagy & GH bar zones (annualised pace):</div>';
+    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#ffffff;border:1px solid #94a3b8;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Baseline</strong> (0–50 h/yr): no fasting effect.</div>';
+    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#a16207;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Bronze</strong> (50–150 h/yr): detectable cellular cleanup / muscle preservation.</div>';
+    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#9ca3af;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Silver</strong> (150–300 h/yr): longevity-relevant zone, rodent lifespan effects.</div>';
+    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#eab308;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Gold</strong> (300+ h/yr): optimal cellular maintenance / sarcopenia protection.</div>';
+    html+='</div>';
   } else if(lastObj && lastObj.n===3){
     html+='<div class="ms-target-header">🎉 All 3 Objectives reached</div>';
     html+='<div class="ms-target-desc">You\'re in maintenance phase. Keep going.</div>';
