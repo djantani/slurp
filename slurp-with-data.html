@@ -508,8 +508,13 @@ var PROCESSES=[
 var EXCEPTIONS={
   dolce:{
     icon:'🍰',label:'Dolce / dessert',
-    desc:'Tiramisu, gelato, panna cotta, cantuccini, cornetto, sweet pastry',
+    desc:'Tiramisu, industrial gelato, panna cotta, cantuccini, cornetto, sweet pastry.',
     cost:{fatox:8, ketones:1.6, mtor:53, gh:11, autophagy:3.2}
+  },
+  homemade_gelato:{
+    icon:'🍦',label:'Homemade gelato',
+    desc:'Real-recipe gelato alla crema, stracciatella with 85% chocolate, or fruit sorbet. Whole-food sugar in fat+protein matrix.',
+    cost:{fatox:4, ketones:0.8, mtor:27, gh:5, autophagy:1.6}
   },
   sugarydrink:{
     icon:'🥤',label:'Sugary drink',
@@ -1319,7 +1324,7 @@ function renderExceptionPanel(exceptions){
   var ep=document.getElementById('excPanel');
   var html='<div class="proc-panel"><div class="stats-title">Tap to log an exception</div>';
   html+='<div class="exc-buttons">';
-  ['sugar','processed','alcohol_light','alcohol','late','heavy'].forEach(function(key){
+  ['dolce','homemade_gelato','sugarydrink','pastry','refined_carb','fastpizza','fastfood','ready_meal','processed_meat','alcohol_light','alcohol','late','heavy'].forEach(function(key){
     var e=EXCEPTIONS[key];
     var totalCost=Object.values(e.cost).reduce(function(a,b){return a+b;},0);
     html+='<button class="exc-btn" onclick="addException(\''+key+'\')"><span class="exc-icon">'+e.icon+'</span><span class="exc-label">'+e.label+'</span><span class="exc-cost">'+e.desc+'</span></button>';
