@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#080c0a">
-<title>Slurp v9</title>
+<title>Slurp v10</title>
 <style>
 @font-face{font-family:'Serif Display';src:local('Georgia'),local('Times New Roman');font-weight:700;font-style:normal;}
 :root{--bg:#080c0a;--surface:#0f1a12;--surface2:#141f17;--accent:#4ade80;--warn12:#facc15;--warn14:#fb923c;--warn16:#c084fc;--warn24:#f472b6;--text:#e2f0e4;--text-dim:#4a6b50;--border:rgba(74,222,128,0.1);--border2:rgba(74,222,128,0.25);--mono:'SF Mono','Menlo','Consolas','DejaVu Sans Mono','Liberation Mono',monospace;--serif:Georgia,'Times New Roman',serif;}
@@ -651,7 +651,7 @@ var MONTHLY_TARGETS={
   autophagy:810     // CLEAN 16:8 monthly
 };
 
-// === OBJECTIVES v9 ===
+// === OBJECTIVES v10 ===
 // fatox/ketones/mtor: dirty 16:8 cumulative at 3/6/12 months
 // autophagy/gh: clean 16:8 (longevity benchmark, ungated by diet)
 var MILESTONES=[
@@ -674,6 +674,45 @@ var MILESTONES=[
     desc:'16:8 at 12 months (with full plateau). Predicted: −3.4 kg fat, −6.5 cm waist, TG −42%, HOMA-IR −32%.'
   }
 ];
+
+// === LONGEVITY BANDS v10 (annual targets, autophagy & GH only) ===
+// Cumulative full-hours per year (1 full hour = 100 %·h).
+// Anchored to literature: rodent autophagy thresholds, human GH pulse studies.
+// Annual = days × per-day rate; pro-rate for 3/6 month checkpoints.
+var LONGEVITY_BANDS={
+  autophagy:[
+    {name:'Baseline',  min:0,    max:50,   color:'#94a3b8',
+     desc:'Standard living, no fasting effect on cellular cleanup.'},
+    {name:'Bronze',    min:50,   max:150,  color:'#a16207',
+     desc:'Detectable cellular cleanup. Some mitochondrial turnover. Subtle but real.'},
+    {name:'Silver',    min:150,  max:300,  color:'#9ca3af',
+     desc:'Longevity-relevant zone. Rodent lifespan studies show effects here.'},
+    {name:'Gold',      min:300,  max:9999, color:'#eab308',
+     desc:'Optimal autophagy load. Strong cellular maintenance, additional hours give diminishing returns.'}
+  ],
+  gh:[
+    {name:'Baseline',  min:0,    max:50,   color:'#94a3b8',
+     desc:'Standard living, no fasting effect on GH pulses.'},
+    {name:'Bronze',    min:50,   max:150,  color:'#a16207',
+     desc:'Some muscle preservation during fat loss.'},
+    {name:'Silver',    min:150,  max:300,  color:'#9ca3af',
+     desc:'Strong muscle/recovery support. Sarcopenia mitigation begins.'},
+    {name:'Gold',      min:300,  max:9999, color:'#eab308',
+     desc:'Optimal sarcopenia protection (especially 50+). Top of useful range.'}
+  ]
+};
+// Pro-rated band thresholds for 3 and 6 month checkpoints
+// (in %·h, since that's the unit accumulated)
+function bandAtPeriod(param, days){
+  var bands=LONGEVITY_BANDS[param];
+  return bands.map(function(b){
+    return {
+      name:b.name,
+      threshold_pct_h: b.min*100 * days/365,  // convert hrs/yr to %·h cumulative
+      color:b.color, desc:b.desc
+    };
+  });
+}
 
 var MEASURABLE_KEYS=['fatox','mtor','ketones'];
 
@@ -853,13 +892,44 @@ function renderMilestoneCard(){
       // 5% tolerance: green if within 5% behind pace or ahead, orange if more than 5% behind
       var pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
       
+      // For autophagy & GH: build a gradient background showing Bronze/Silver/Gold zones
+      // The bar represents progress toward objective target (which equals clean 16:8 cumulative).
+      // Band thresholds in %·h are: hrs/yr × 100 × periodDays/365
+      var trackBg = '';
+      if((p.key==='autophagy' || p.key==='gh') && msTarget>0){
+        var bands = LONGEVITY_BANDS[p.key];
+        // Period covered by current Objective slice = (objCalendarDays[targetN] - sliceStartDay)
+        var periodDays = sliceLengthDays;
+        var stops = [];
+        bands.forEach(function(b){
+          // Convert band min/max (hrs/year) to %·h cumulative for this slice period
+          var minPctH = b.min * 100 * periodDays / 365;
+          var maxPctH = b.max * 100 * periodDays / 365;
+          // As % of msTarget for this slice
+          var minPct = Math.min(100, minPctH / msTarget * 100);
+          var maxPct = Math.min(100, maxPctH / msTarget * 100);
+          if(minPct < 100){
+            stops.push({from:minPct, to:Math.min(100,maxPct), color:b.color, name:b.name});
+          }
+        });
+        // Build CSS linear-gradient
+        var gradStops = [];
+        stops.forEach(function(s){
+          gradStops.push(s.color+' '+s.from.toFixed(1)+'%');
+          gradStops.push(s.color+' '+s.to.toFixed(1)+'%');
+        });
+        if(gradStops.length){
+          trackBg = 'background:linear-gradient(to right,'+gradStops.join(',')+');opacity:0.55;';
+        }
+      }
+      
       html+='<div class="ms-param-row">';
       html+='<div class="ms-param-head">';
       html+='<span class="ms-param-icon">'+p.icon+'</span>';
       html+='<span class="ms-param-name">'+p.name+'</span>';
       html+='<span class="ms-param-pct '+pctClass+'">'+pct+'%</span>';
       html+='</div>';
-      html+='<div class="ms-param-bar-wrap">';
+      html+='<div class="ms-param-bar-wrap"'+(trackBg?' style="'+trackBg+'"':'')+'>';
       html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
       html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Calendar pace at day '+Math.floor(actualDays)+'"></div>';
       html+='</div>';
