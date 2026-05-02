@@ -692,20 +692,20 @@ var LONGEVITY_BANDS={
      desc:'Standard living, no fasting effect on cellular cleanup.'},
     {name:'Bronze',    min:50,   max:150,  color:'#a16207',
      desc:'Detectable cellular cleanup. Some mitochondrial turnover. Subtle but real.'},
-    {name:'Silver',    min:150,  max:300,  color:'#9ca3af',
+    {name:'Silver',    min:150,  max:300,  color:'#64748b',
      desc:'Longevity-relevant zone. Rodent lifespan studies show effects here.'},
     {name:'Gold',      min:300,  max:9999, color:'#eab308',
-     desc:'Optimal autophagy load. Strong cellular maintenance, additional hours give diminishing returns.'}
+     desc:'Optimal autophagy load. Strong cellular maintenance.'}
   ],
   gh:[
     {name:'Baseline',  min:0,    max:50,   color:'#ffffff',
      desc:'Standard living, no fasting effect on GH pulses.'},
     {name:'Bronze',    min:50,   max:150,  color:'#a16207',
      desc:'Some muscle preservation during fat loss.'},
-    {name:'Silver',    min:150,  max:300,  color:'#9ca3af',
+    {name:'Silver',    min:150,  max:300,  color:'#64748b',
      desc:'Strong muscle/recovery support. Sarcopenia mitigation begins.'},
     {name:'Gold',      min:300,  max:9999, color:'#eab308',
-     desc:'Optimal sarcopenia protection (especially 50+). Top of useful range.'}
+     desc:'Optimal sarcopenia protection (especially 50+).'}
   ]
 };
 // Pro-rated band thresholds for 3 and 6 month checkpoints
@@ -895,38 +895,45 @@ function renderMilestoneCard(){
       var pct = sliceSize>0 ? Math.round(actualInSlice/sliceSize*100) : 0;
       var barPct = Math.min(100, pct);
       var isMeasurable = MEASURABLE_KEYS.indexOf(p.key)>=0;
+      var isLongevity = (p.key==='autophagy' || p.key==='gh');
       
       // 5% tolerance: green if within 5% behind pace or ahead, orange if more than 5% behind
       var pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
       
-      // For autophagy & GH: build a gradient background showing Bronze/Silver/Gold zones
-      // The bar represents progress toward objective target (which equals clean 16:8 cumulative).
-      // Band thresholds in %·h are: hrs/yr × 100 × periodDays/365
+      // For autophagy & GH: track shows band zones in background.
+      // Bar fill is the standard progress gradient on top, like the other params.
       var trackBg = '';
-      if((p.key==='autophagy' || p.key==='gh') && msTarget>0){
+      var rightLabel = pct + '%';
+      if(isLongevity && actualDays > 0){
+        var annualHrs = actual / actualDays * 365 / 100;
+        var scaleMax = 400;
+        barPct = Math.min(100, annualHrs / scaleMax * 100);
+        
+        // Determine current band for label
         var bands = LONGEVITY_BANDS[p.key];
-        // Period covered by current Objective slice = (objCalendarDays[targetN] - sliceStartDay)
-        var periodDays = sliceLengthDays;
+        var curBand = bands[0];
+        for(var bi=bands.length-1; bi>=0; bi--){
+          if(annualHrs >= bands[bi].min){curBand = bands[bi]; break;}
+        }
+        pctClass = curBand.name === 'Baseline' ? 'behind' : 'ahead';
+        rightLabel = Math.round(annualHrs) + ' h/yr';
+        
+        // Build gradient track showing the 4 band zones at correct positions
         var stops = [];
         bands.forEach(function(b){
-          // Convert band min/max (hrs/year) to %·h cumulative for this slice period
-          var minPctH = b.min * 100 * periodDays / 365;
-          var maxPctH = b.max * 100 * periodDays / 365;
-          // As % of msTarget for this slice
-          var minPct = Math.min(100, minPctH / msTarget * 100);
-          var maxPct = Math.min(100, maxPctH / msTarget * 100);
+          var minPct = Math.min(100, b.min / scaleMax * 100);
+          var maxPct = Math.min(100, b.max / scaleMax * 100);
           if(minPct < 100){
-            stops.push({from:minPct, to:Math.min(100,maxPct), color:b.color, name:b.name});
+            stops.push({from:minPct, to:maxPct, color:b.color});
           }
         });
-        // Build CSS linear-gradient
         var gradStops = [];
         stops.forEach(function(s){
           gradStops.push(s.color+' '+s.from.toFixed(1)+'%');
           gradStops.push(s.color+' '+s.to.toFixed(1)+'%');
         });
         if(gradStops.length){
-          trackBg = 'background:linear-gradient(to right,'+gradStops.join(',')+');opacity:0.55;';
+          trackBg = 'background:linear-gradient(to right,'+gradStops.join(',')+');';
         }
       }
       
@@ -934,11 +941,13 @@ function renderMilestoneCard(){
       html+='<div class="ms-param-head">';
       html+='<span class="ms-param-icon">'+p.icon+'</span>';
       html+='<span class="ms-param-name">'+p.name+'</span>';
-      html+='<span class="ms-param-pct '+pctClass+'">'+pct+'%</span>';
+      html+='<span class="ms-param-pct '+pctClass+'">'+rightLabel+'</span>';
       html+='</div>';
       html+='<div class="ms-param-bar-wrap"'+(trackBg?' style="'+trackBg+'"':'')+'>';
       html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
-      html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Calendar pace at day '+Math.floor(actualDays)+'"></div>';
+      if(!isLongevity){
+        html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Calendar pace at day '+Math.floor(actualDays)+'"></div>';
+      }
       html+='</div>';
       html+='</div>';
     });
@@ -970,25 +979,13 @@ function renderMilestoneCard(){
       html+='<div class="ms-pace-text">'+paceText+'</div>';
     }
     
-    // Start Fasting button placed here — between bars/pace and descriptions
-    html+='<div style="margin:14px 0;text-align:center;">'+
-      '<button class="thumb-btn start" id="mainBtn" onclick="toggleFast()" style="display:inline-flex;width:auto;padding:10px 24px;">'+
-        '<span class="thumb-btn-icon" id="btnIcon">🌙</span>'+
-        '<span class="thumb-btn-label" id="btnLabel">Start Fasting</span>'+
-      '</button>'+
-    '</div>';
-    
     html+='<div class="ms-legend"><span class="ms-legend-line"></span> = dirty 16:8 calendar pace at day '+Math.floor(actualDays)+' of '+(sliceStartDay+sliceLengthDays)+'. Fat ox/mTOR/ketones target = dirty 16:8 trial level. GH/autophagy target = clean 16:8.</div>';
     
     html+='<div class="ms-target-desc"><strong>Objective '+targetN+' definition:</strong> '+nextObj.desc+'</div>';
     
-    // Longevity band definitions (only show if autophagy/GH bars are visible)
-    html+='<div style="margin-top:10px;padding:10px;background:rgba(148,163,184,0.06);border-radius:8px;font-size:0.78rem;line-height:1.5;color:var(--text2);">';
-    html+='<div style="font-weight:600;color:var(--text);margin-bottom:6px;">Autophagy & GH bar zones (annualised pace):</div>';
-    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#ffffff;border:1px solid #94a3b8;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Baseline</strong> (0–50 h/yr): no fasting effect.</div>';
-    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#a16207;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Bronze</strong> (50–150 h/yr): detectable cellular cleanup / muscle preservation.</div>';
-    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#9ca3af;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Silver</strong> (150–300 h/yr): longevity-relevant zone, rodent lifespan effects.</div>';
-    html+='<div><span style="display:inline-block;width:10px;height:10px;background:#eab308;border-radius:2px;margin-right:6px;vertical-align:middle;"></span><strong>Gold</strong> (300+ h/yr): optimal cellular maintenance / sarcopenia protection.</div>';
+    // Compact longevity band legend
+    html+='<div style="margin-top:8px;font-size:0.72rem;color:var(--text2);line-height:1.4;">';
+    html+='Autophagy/GH bands: <span style="color:#fff;">Baseline 0–50</span> · <span style="color:#a16207;">Bronze 50–150</span> · <span style="color:#64748b;">Silver 150–300</span> · <span style="color:#eab308;">Gold 300+</span> h/yr';
     html+='</div>';
   } else if(lastObj && lastObj.n===3){
     html+='<div class="ms-target-header">🎉 All 3 Objectives reached</div>';
@@ -1216,14 +1213,8 @@ function checkRecommendation(){
   var todayStr=new Date().toDateString();
   if(dismissed===todayStr)return;
   var h=getHistory();if(!h.length)return;
-  var last=h[0];
-  var lastDay=new Date(last.end).toDateString();
-  var yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-  if(lastDay!==yesterday.toDateString()&&lastDay!==todayStr)return;
-  if(last.hours>=16){
-    document.getElementById('recMsg').textContent='Recommended fast: 12h';
-    document.getElementById('recBanner').classList.remove('hidden');
-  }
+  // Recommendation banner disabled — was suggesting 12h after 16h+, user found it noisy
+  return;
 }
 
 function dismissRec(){
@@ -1234,11 +1225,71 @@ function dismissRec(){
 function getHistory(){return JSON.parse(localStorage.getItem('slurp_history')||'[]');}
 function saveHistoryArr(arr){
   arr.sort(function(a,b){return b.start-a.start;});
-  if(arr.length>200)arr.length=200; // increased from 60 to keep more history
+  if(arr.length>200)arr.length=200;
   localStorage.setItem('slurp_history',JSON.stringify(arr));
+  // Also save a redundant copy under a backup key (so even if main key gets cleared, this might survive)
+  try { localStorage.setItem('slurp_history_backup',JSON.stringify(arr)); } catch(e){}
+  // Auto-trigger a download backup every fast end
+  try { triggerAutoBackup(arr); } catch(e){ console.log('backup error',e); }
 }
 function saveHistory(start,end,hours){
   var h=getHistory();h.unshift({start:start,end:end,hours:hours});saveHistoryArr(h);
+}
+
+// === AUTOMATIC BACKUP DOWNLOAD ===
+// Generates a small JSON file the user can keep in Downloads.
+// Triggered after every fast end. Browser shows download in notification.
+var _lastBackupTime=0;
+function triggerAutoBackup(history){
+  var now=Date.now();
+  // Throttle: max 1 backup per 5 minutes (avoid spam if multiple saves happen)
+  if(now-_lastBackupTime<5*60*1000) return;
+  _lastBackupTime=now;
+  
+  var data={
+    exported_at: new Date().toISOString(),
+    version: 'slurp-v10',
+    history: history,
+    exceptions: JSON.parse(localStorage.getItem('slurp_exceptions')||'[]'),
+    measurements: JSON.parse(localStorage.getItem('slurp_measurements')||'{}'),
+    protocol_start: localStorage.getItem('slurp_protocol_start')||null
+  };
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  var d=new Date();
+  var fname='slurp-backup-'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.json';
+  a.download=fname;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },100);
+}
+
+// Restore from a JSON file the user picks
+function restoreFromFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      var data=JSON.parse(e.target.result);
+      if(data.history && Array.isArray(data.history)){
+        localStorage.setItem('slurp_history',JSON.stringify(data.history));
+        if(data.exceptions) localStorage.setItem('slurp_exceptions',JSON.stringify(data.exceptions));
+        if(data.measurements) localStorage.setItem('slurp_measurements',JSON.stringify(data.measurements));
+        if(data.protocol_start) localStorage.setItem('slurp_protocol_start',data.protocol_start);
+        alert('Restored '+data.history.length+' fasts. Refreshing...');
+        location.reload();
+      } else {
+        alert('Invalid backup file');
+      }
+    } catch(err) {
+      alert('Could not read backup: '+err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 function setTab(tab){
@@ -1847,13 +1898,42 @@ function loadState(){
 var EMBEDDED_FASTS=[{"start":1777125600000,"end":1777192927454,"hours":18.702070555555554},{"start":1777055269119,"end":1777107343576,"hours":14.465126944444444},{"start":1776969000000,"end":1777015800000,"hours":13},{"start":1776882900000,"end":1776927900000,"hours":12.5},{"start":1776783600000,"end":1776843022236,"hours":16.506176666666665},{"start":1776708900000,"end":1776756000000,"hours":13.083333333333334},{"start":1776620700000,"end":1776671329271,"hours":14.06368638888889},{"start":1776538011403,"end":1776584953586,"hours":13.039495277777778},{"start":1776446700000,"end":1776497564111,"hours":14.128919722222221},{"start":1776362776601,"end":1776410355408,"hours":13.216335277777779},{"start":1776275100000,"end":1776321947452,"hours":13.01318111111111},{"start":1776196200000,"end":1776240008894,"hours":12.169137222222222},{"start":1776102918562,"end":1776153337976,"hours":14.005392777777777},{"start":1776018357483,"end":1776065829478,"hours":13.186665277777777},{"start":1775933400000,"end":1775980800000,"hours":13.166666666666666},{"start":1775841900000,"end":1775894872948,"hours":14.714707777777777},{"start":1775755864851,"end":1775802829211,"hours":13.045655555555555},{"start":1775675568545,"end":1775718783403,"hours":12.004127222222222},{"start":1775582400000,"end":1775633047523,"hours":14.06875638888889},{"start":1775489400000,"end":1775547600000,"hours":16.166666666666668},{"start":1775415600000,"end":1775460366200,"hours":12.435055555555556},{"start":1775326500000,"end":1775371500000,"hours":12.5},{"start":1775241300000,"end":1775284800000,"hours":12.083333333333334},{"start":1775151600000,"end":1775195590913,"hours":12.219698055555556},{"start":1775065589960,"end":1775110880331,"hours":12.580658611111112},{"start":1774978800000,"end":1775029208141,"hours":14.002261388888888},{"start":1774899900000,"end":1774946883519,"hours":13.0509775},{"start":1774805400000,"end":1774856230756,"hours":14.119654444444445},{"start":1774725080185,"end":1774772410470,"hours":13.14730138888889},{"start":1774637700000,"end":1774684561353,"hours":13.017042222222223},{"start":1774551105255,"end":1774601526137,"hours":14.005800277777778},{"start":1774462800000,"end":1774509900000,"hours":13.083333333333334},{"start":1774379156153,"end":1774430353928,"hours":14.221604166666667},{"start":1774292026332,"end":1774338872140,"hours":13.012724166666667},{"start":1774204768840,"end":1774249218920,"hours":12.347244444444444},{"start":1774119900000,"end":1774165628079,"hours":12.702244166666667},{"start":1774031839453,"end":1774078656241,"hours":13.004663333333333},{"start":1773953314897,"end":1774013118850,"hours":16.612209166666666},{"start":1773858464698,"end":1773904520684,"hours":12.793329444444444},{"start":1773774600000,"end":1773819530979,"hours":12.4808275},{"start":1773686444272,"end":1773733865521,"hours":13.172569166666667},{"start":1773591600000,"end":1773649205523,"hours":16.001534166666666},{"start":1773513414031,"end":1773560220371,"hours":13.001761111111112},{"start":1773429189432,"end":1773472391512,"hours":12.000577777777778},{"start":1773329100000,"end":1773387237386,"hours":16.14927388888889},{"start":1773253218364,"end":1773305955600,"hours":14.649232222222222},{"start":1773169298053,"end":1773217129510,"hours":13.286515833333333},{"start":1773081810161,"end":1773126312023,"hours":12.361628333333334},{"start":1772996400000,"end":1773047700000,"hours":14.25},{"start":1772910600000,"end":1772970503735,"hours":16.639926388888888},{"start":1772822700000,"end":1772874300000,"hours":14.333333333333334},{"start":1772736300000,"end":1772787600000,"hours":14.25}];
 function autoRestoreEmbedded(){
   var existing=JSON.parse(localStorage.getItem('slurp_history')||'[]');
-  // Always restore if history empty — better to re-import than show empty state
-  if(existing.length===0){
+  if(existing.length>0) return; // good, do nothing
+  
+  // Try backup key first (set as redundant copy on every save)
+  var backup=JSON.parse(localStorage.getItem('slurp_history_backup')||'[]');
+  if(backup.length>0){
+    localStorage.setItem('slurp_history',JSON.stringify(backup));
+    console.log('Restored '+backup.length+' fasts from backup key');
+    return;
+  }
+  
+  // Fall back to embedded fasts
+  if(EMBEDDED_FASTS.length>0){
     localStorage.setItem('slurp_history',JSON.stringify(EMBEDDED_FASTS));
     console.log('Restored '+EMBEDDED_FASTS.length+' fasts from embedded backup');
   }
 }
+// Weekly auto-backup on app open
+function weeklyBackupCheck(){
+  try {
+    var last = parseInt(localStorage.getItem('slurp_last_backup_ts')||'0',10);
+    var now = Date.now();
+    var weekMs = 7*24*60*60*1000;
+    var history = getHistory();
+    if(history.length === 0) return;
+    if(now - last >= weekMs){
+      // Force backup, bypassing the 5-min throttle
+      _lastBackupTime = 0;
+      triggerAutoBackup(history);
+      localStorage.setItem('slurp_last_backup_ts', String(now));
+      console.log('Weekly auto-backup triggered');
+    }
+  } catch(e) { console.log('weekly backup check failed', e); }
+}
+
 autoRestoreEmbedded();
+weeklyBackupCheck();
 
 loadState();
 </script>
