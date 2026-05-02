@@ -320,6 +320,13 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
   <div class="big-timer" id="bigTimer">00:00:00</div>
   <div class="timer-sub" id="timerSub">tap the button to begin your fast</div>
 
+  <div style="margin:14px 0;text-align:center;">
+    <button class="thumb-btn start" id="mainBtn" onclick="toggleFast()" style="display:inline-flex;width:auto;padding:12px 28px;">
+      <span class="thumb-btn-icon" id="btnIcon">🌙</span>
+      <span class="thumb-btn-label" id="btnLabel">Start Fasting</span>
+    </button>
+  </div>
+
   <div id="milestoneCard" class="milestone-card"></div>
 
   <div class="info-row">
@@ -1840,10 +1847,9 @@ function loadState(){
 var EMBEDDED_FASTS=[{"start":1777125600000,"end":1777192927454,"hours":18.702070555555554},{"start":1777055269119,"end":1777107343576,"hours":14.465126944444444},{"start":1776969000000,"end":1777015800000,"hours":13},{"start":1776882900000,"end":1776927900000,"hours":12.5},{"start":1776783600000,"end":1776843022236,"hours":16.506176666666665},{"start":1776708900000,"end":1776756000000,"hours":13.083333333333334},{"start":1776620700000,"end":1776671329271,"hours":14.06368638888889},{"start":1776538011403,"end":1776584953586,"hours":13.039495277777778},{"start":1776446700000,"end":1776497564111,"hours":14.128919722222221},{"start":1776362776601,"end":1776410355408,"hours":13.216335277777779},{"start":1776275100000,"end":1776321947452,"hours":13.01318111111111},{"start":1776196200000,"end":1776240008894,"hours":12.169137222222222},{"start":1776102918562,"end":1776153337976,"hours":14.005392777777777},{"start":1776018357483,"end":1776065829478,"hours":13.186665277777777},{"start":1775933400000,"end":1775980800000,"hours":13.166666666666666},{"start":1775841900000,"end":1775894872948,"hours":14.714707777777777},{"start":1775755864851,"end":1775802829211,"hours":13.045655555555555},{"start":1775675568545,"end":1775718783403,"hours":12.004127222222222},{"start":1775582400000,"end":1775633047523,"hours":14.06875638888889},{"start":1775489400000,"end":1775547600000,"hours":16.166666666666668},{"start":1775415600000,"end":1775460366200,"hours":12.435055555555556},{"start":1775326500000,"end":1775371500000,"hours":12.5},{"start":1775241300000,"end":1775284800000,"hours":12.083333333333334},{"start":1775151600000,"end":1775195590913,"hours":12.219698055555556},{"start":1775065589960,"end":1775110880331,"hours":12.580658611111112},{"start":1774978800000,"end":1775029208141,"hours":14.002261388888888},{"start":1774899900000,"end":1774946883519,"hours":13.0509775},{"start":1774805400000,"end":1774856230756,"hours":14.119654444444445},{"start":1774725080185,"end":1774772410470,"hours":13.14730138888889},{"start":1774637700000,"end":1774684561353,"hours":13.017042222222223},{"start":1774551105255,"end":1774601526137,"hours":14.005800277777778},{"start":1774462800000,"end":1774509900000,"hours":13.083333333333334},{"start":1774379156153,"end":1774430353928,"hours":14.221604166666667},{"start":1774292026332,"end":1774338872140,"hours":13.012724166666667},{"start":1774204768840,"end":1774249218920,"hours":12.347244444444444},{"start":1774119900000,"end":1774165628079,"hours":12.702244166666667},{"start":1774031839453,"end":1774078656241,"hours":13.004663333333333},{"start":1773953314897,"end":1774013118850,"hours":16.612209166666666},{"start":1773858464698,"end":1773904520684,"hours":12.793329444444444},{"start":1773774600000,"end":1773819530979,"hours":12.4808275},{"start":1773686444272,"end":1773733865521,"hours":13.172569166666667},{"start":1773591600000,"end":1773649205523,"hours":16.001534166666666},{"start":1773513414031,"end":1773560220371,"hours":13.001761111111112},{"start":1773429189432,"end":1773472391512,"hours":12.000577777777778},{"start":1773329100000,"end":1773387237386,"hours":16.14927388888889},{"start":1773253218364,"end":1773305955600,"hours":14.649232222222222},{"start":1773169298053,"end":1773217129510,"hours":13.286515833333333},{"start":1773081810161,"end":1773126312023,"hours":12.361628333333334},{"start":1772996400000,"end":1773047700000,"hours":14.25},{"start":1772910600000,"end":1772970503735,"hours":16.639926388888888},{"start":1772822700000,"end":1772874300000,"hours":14.333333333333334},{"start":1772736300000,"end":1772787600000,"hours":14.25}];
 function autoRestoreEmbedded(){
   var existing=JSON.parse(localStorage.getItem('slurp_history')||'[]');
-  // Only auto-import if there's no data yet AND we haven't done this before
-  if(existing.length===0 && !localStorage.getItem('slurp_embedded_loaded')){
+  // Always restore if history empty — better to re-import than show empty state
+  if(existing.length===0){
     localStorage.setItem('slurp_history',JSON.stringify(EMBEDDED_FASTS));
-    localStorage.setItem('slurp_embedded_loaded','1');
     console.log('Restored '+EMBEDDED_FASTS.length+' fasts from embedded backup');
   }
 }
