@@ -901,15 +901,32 @@ function renderMilestoneCard(){
       var pctClass = pct >= (pacePct - 5) ? 'ahead' : 'behind';
       
       // For autophagy & GH: track shows band zones in background.
-      // Bar fill is the standard progress gradient on top, like the other params.
+      // 30-day rolling h/yr. Fixed scale 0-350 so Gold shows as sliver at the right end.
       var trackBg = '';
       var rightLabel = pct + '%';
       if(isLongevity && actualDays > 0){
-        var annualHrs = actual / actualDays * 365 / 100;
-        var scaleMax = 400;
+        // 30-day rolling
+        var thirtyDaysAgo = Date.now() - 30*24*60*60*1000;
+        var rolling_pct_h = 0;
+        var rolling_days = Math.min(30, actualDays);
+        history.forEach(function(f){
+          if(f.start >= thirtyDaysAgo){
+            var fn = (p.key==='autophagy') ? actAutophagy : actGH;
+            var L = f.hours, n = 100;
+            var t = 0, prev = fn(0);
+            for(var i=1; i<=n; i++){
+              var x = i*L/n; var v = fn(x);
+              t += (prev+v)/2 * (L/n); prev = v;
+            }
+            rolling_pct_h += t;
+          }
+        });
+        var annualHrs = rolling_pct_h / rolling_days * 365 / 100;
+        
+        var scaleMax = 350;  // fixed: ends at sliver into Gold (which starts at 300)
         barPct = Math.min(100, annualHrs / scaleMax * 100);
         
-        // Determine current band for label
+        // Determine current band for label color
         var bands = LONGEVITY_BANDS[p.key];
         var curBand = bands[0];
         for(var bi=bands.length-1; bi>=0; bi--){
@@ -918,7 +935,7 @@ function renderMilestoneCard(){
         pctClass = curBand.name === 'Baseline' ? 'behind' : 'ahead';
         rightLabel = Math.round(annualHrs) + ' h/yr';
         
-        // Build gradient track showing the 4 band zones at correct positions
+        // Track zones
         var stops = [];
         bands.forEach(function(b){
           var minPct = Math.min(100, b.min / scaleMax * 100);
