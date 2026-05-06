@@ -461,64 +461,65 @@ var MS={
 // Units differ per parameter — integrating gives accumulated work in real units.
 
 // === v11 ACTIVATION CURVES (indexed by METABOLIC fast hours) ===
-// Rebased -5h from old clock-time curves (which were calibrated on Western diet ~5h postprandial).
+// Derived from v10 CODE values shifted -5h (the western-diet postprandial baseline
+// the v10 curves were calibrated against). Earlier draft followed v10 SUMMARY-DOC
+// values which were inflated vs the actual v10 code; this version is corrected.
 
 // FAT OXIDATION: returns g/h (RER-anchored, RMR 68 kcal/h)
-// Metabolic time targets: 0=50, 3=58, 7=71, 9=78, 11=82, 13=86, 19=97
+// pct anchors: 0=48, 1=49, 5=58, 9=68, 11=72, 13=75, 19=83 (plateau)
 function actFatox(h){
   var pct;
-  if(h<3)  pct = 50 + 8*h/3;            // 50→58
-  else if(h<7)  pct = 58 + 13*(h-3)/4;   // 58→71
-  else if(h<9)  pct = 71 + 7*(h-7)/2;    // 71→78
-  else if(h<11) pct = 78 + 4*(h-9)/2;    // 78→82
-  else if(h<13) pct = 82 + 4*(h-11)/2;   // 82→86
-  else if(h<19) pct = 86 + 11*(h-13)/6;  // 86→97
-  else pct = 97;
+  if(h<1)        pct = 48 + 1*h;
+  else if(h<5)   pct = 49 + 9*(h-1)/4;
+  else if(h<9)   pct = 58 + 10*(h-5)/4;
+  else if(h<11)  pct = 68 + 4*(h-9)/2;
+  else if(h<13)  pct = 72 + 3*(h-11)/2;
+  else if(h<19)  pct = 75 + 8*(h-13)/6;
+  else           pct = 83;
   return 68 * (pct/100) / 9.0;
 }
-// KETONES: BHB mmol/L (instantaneous concentration)
-// Metabolic time targets: 0=0.15, 7=0.25, 9=0.35, 11=0.50, 13=0.70, 15=0.90, 19=1.20
+// KETONES: BHB mmol/L (instantaneous)
+// anchors: 0=0.13, 3=0.15, 7=0.25, 9=0.35, 11=0.50, 13=0.70, 15=0.90, 19=1.20
 function actKetones(h){
-  if(h<7)  return 0.15 + 0.10*h/7;
-  if(h<9)  return 0.25 + 0.10*(h-7)/2;
-  if(h<11) return 0.35 + 0.15*(h-9)/2;
-  if(h<13) return 0.50 + 0.20*(h-11)/2;
-  if(h<15) return 0.70 + 0.20*(h-13)/2;
-  if(h<19) return 0.90 + 0.30*(h-15)/4;
+  if(h<3)   return 0.13 + 0.02*h/3;
+  if(h<7)   return 0.15 + 0.10*(h-3)/4;
+  if(h<9)   return 0.25 + 0.10*(h-7)/2;
+  if(h<11)  return 0.35 + 0.15*(h-9)/2;
+  if(h<13)  return 0.50 + 0.20*(h-11)/2;
+  if(h<15)  return 0.70 + 0.20*(h-13)/2;
+  if(h<19)  return 0.90 + 0.30*(h-15)/4;
   return 1.20;
 }
 // mTOR: % suppression
-// Metabolic time targets: 0=10, 3=15, 7=30, 9=40, 11=50, 13=60, 15=70, 19=85
+// anchors: 0=4, 3=15, 7=30, 11=45, 13=52.5, 15=60, 19=82 (plateau)
 function actMTOR(h){
-  if(h<3)  return 10 + 5*h/3;
-  if(h<7)  return 15 + 15*(h-3)/4;
-  if(h<9)  return 30 + 10*(h-7)/2;
-  if(h<11) return 40 + 10*(h-9)/2;
-  if(h<13) return 50 + 10*(h-11)/2;
-  if(h<15) return 60 + 10*(h-13)/2;
-  if(h<19) return 70 + 15*(h-15)/4;
-  return 85;
+  if(h<3)   return 3.75 + 11.25*h/3;
+  if(h<7)   return 15 + 15*(h-3)/4;
+  if(h<11)  return 30 + 15*(h-7)/4;
+  if(h<15)  return 45 + 15*(h-11)/4;
+  if(h<19)  return 60 + 22*(h-15)/4;
+  return 82;
 }
-// AUTOPHAGY: % activation
-// Metabolic time targets: 7=0, 9=5, 11=17, 13=35, 15=52, 19=75
+// AUTOPHAGY: % activation (matches v10 code shifted -5h, unchanged from prior v11)
+// anchors: 7=0, 9=5, 11=17, 13=35, 15=52, 19=75
 function actAutophagy(h){
-  if(h<7)  return 0;
-  if(h<9)  return 5*(h-7)/2;
-  if(h<11) return 5 + 12*(h-9)/2;
-  if(h<13) return 17 + 18*(h-11)/2;
-  if(h<15) return 35 + 17*(h-13)/2;
-  if(h<19) return 52 + 23*(h-15)/4;
+  if(h<7)   return 0;
+  if(h<9)   return 5*(h-7)/2;
+  if(h<11)  return 5 + 12*(h-9)/2;
+  if(h<13)  return 17 + 18*(h-11)/2;
+  if(h<15)  return 35 + 17*(h-13)/2;
+  if(h<19)  return 52 + 23*(h-15)/4;
   return 75;
 }
 // GH: % above baseline pulse intensity
-// Metabolic time targets: 5=0, 9=12, 13=35, 17=65, 19=73
+// anchors: 5=0, 9=12, 13=35, 17=65, 23=90 (plateau)
 function actGH(h){
-  if(h<5)  return 0;
-  if(h<9)  return 12*(h-5)/4;
-  if(h<13) return 12 + 23*(h-9)/4;
-  if(h<17) return 35 + 30*(h-13)/4;
-  if(h<19) return 65 + 8*(h-17)/2;
-  return 73;
+  if(h<5)   return 0;
+  if(h<9)   return 12*(h-5)/4;
+  if(h<13)  return 12 + 23*(h-9)/4;
+  if(h<17)  return 35 + 30*(h-13)/4;
+  if(h<23)  return 65 + 25*(h-17)/6;
+  return 90;
 }
 
 var PROCESSES=[
@@ -564,86 +565,88 @@ function getMealType(key){
 //   ~8 late eating, ~1 heavy day = ~51 exceptions/month
 // This load consumes ~25% of gross fasting work, leaving 75% to produce measured outcomes.
 // Cost values below were derived to make this calibration consistent across all parameters.
-// === EXCEPTION COSTS v8 (calibrated, locked) ===
-// k = 0.74 (fat ox g → fat lost g)
-// Western damage = 1,445 g fat ox/month
-// Other params scaled proportionally to fat ox
+// === EXCEPTION COSTS v11 (per-exception, research-grounded) ===
+// Different mechanisms damage different parameters:
+//   FOOD (carbs/processed): fat ox 1.5×, mTOR 0.7×, others 0× (postprandial offset captures rest)
+//   ALCOHOL: fat ox 1.5×, ket 1.0× (direct ketogenesis block), mTOR 0.3×, GH 1.0× (direct), auto 0.5×
+//   LATE: fat ox 1.5×, GH 1.0× (nocturnal pulse), auto 0.5× (sleep window), mTOR/ket 0×
+//   HEAVY: fat ox 1.5×, mTOR 1.0×, ket 1.0×, GH 1.5×, auto 1.0× (multi-stack)
 var EXCEPTIONS={
   dolce:{
     icon:'🍰',label:'Dolce / dessert',
     desc:'Tiramisu, industrial gelato, panna cotta, cantuccini, cornetto, sweet pastry.',
-    cost:{fatox:8, ketones:1.6, mtor:53, gh:11, autophagy:3.2}
+    cost:{fatox:12, ketones:0, mtor:37, gh:0, autophagy:0}
   },
   homemade_gelato:{
     icon:'🍦',label:'Homemade gelato',
-    desc:'Real-recipe gelato alla crema, stracciatella with 85% chocolate, or fruit sorbet. Whole-food sugar in fat+protein matrix.',
-    cost:{fatox:4, ketones:0.8, mtor:27, gh:5, autophagy:1.6}
+    desc:'Real-recipe gelato alla crema, stracciatella with 85% chocolate, or fruit sorbet.',
+    cost:{fatox:6, ketones:0, mtor:19, gh:0, autophagy:0}
   },
   sugarydrink:{
     icon:'🥤',label:'Sugary drink',
     desc:'Coke, fruit juice, sweet aperitivo, syrupy cocktail',
-    cost:{fatox:8, ketones:1.6, mtor:53, gh:11, autophagy:3.2}
+    cost:{fatox:12, ketones:0, mtor:37, gh:0, autophagy:0}
   },
   pastry:{
     icon:'🥐',label:'Pastry / breakfast carb',
     desc:'Cornetto, brioche, sweet breakfast pastry',
-    cost:{fatox:11, ketones:2.1, mtor:64, gh:16, autophagy:5.3}
+    cost:{fatox:17, ketones:0, mtor:45, gh:0, autophagy:0}
   },
   refined_carb:{
     icon:'🍞',label:'Refined-carb meal',
     desc:'White pasta in restaurant, white risotto, big bread basket, white sandwich',
-    cost:{fatox:13, ketones:2.1, mtor:74, gh:21, autophagy:6.4}
+    cost:{fatox:20, ketones:0, mtor:52, gh:0, autophagy:0}
   },
   fastpizza:{
     icon:'🍕',label:'Fast / chain pizza',
     desc:'Pizza al taglio, frozen pizza, chain pizza (NOT pizza napoletana sourdough)',
-    cost:{fatox:26, ketones:3.2, mtor:105, gh:35, autophagy:9.5}
+    cost:{fatox:39, ketones:0, mtor:74, gh:0, autophagy:0}
   },
   fastfood:{
     icon:'🍔',label:'Fast food',
     desc:'McDonald\'s, KFC, kebab, fried takeaway',
-    cost:{fatox:26, ketones:3.2, mtor:105, gh:35, autophagy:9.5}
+    cost:{fatox:39, ketones:0, mtor:74, gh:0, autophagy:0}
   },
   ready_meal:{
     icon:'🥫',label:'Ultra-processed ready meal',
     desc:'Frozen ready meal, packaged carbonara, instant pasta, supermarket meal kit',
-    cost:{fatox:26, ketones:3.2, mtor:105, gh:35, autophagy:9.5}
+    cost:{fatox:39, ketones:0, mtor:74, gh:0, autophagy:0}
   },
   processed_meat:{
     icon:'🥓',label:'Processed meat',
     desc:'Mortadella industriale, würstel, sausages with nitrates, salame industriale',
-    cost:{fatox:17, ketones:2.6, mtor:85, gh:26, autophagy:7.4}
+    cost:{fatox:26, ketones:0, mtor:60, gh:0, autophagy:0}
   },
   alcohol_glass:{
     icon:'🍷',label:'1 glass wine/beer',
     desc:'Single glass wine or half pint beer. Press multiple times for multiple drinks.',
-    cost:{fatox:8, ketones:1.2, mtor:50, gh:50, autophagy:12}
+    cost:{fatox:12, ketones:1.2, mtor:15, gh:50, autophagy:6}
   },
   alcohol_spirit:{
     icon:'🥃',label:'1 spirit/cocktail',
     desc:'Single spirit, cocktail, or full pint. Press multiple times for multiple drinks.',
-    cost:{fatox:13, ketones:1.8, mtor:75, gh:75, autophagy:18}
+    cost:{fatox:20, ketones:1.8, mtor:23, gh:75, autophagy:9}
   },
   // Legacy keys (kept for backward compatibility with existing logged exceptions)
   alcohol_light:{
     icon:'🥂',label:'1 drink (legacy)',
     desc:'Legacy entry — use 1 glass wine/beer instead.',
-    cost:{fatox:13, ketones:1.6, mtor:70, gh:89, autophagy:20}
+    cost:{fatox:20, ketones:1.6, mtor:21, gh:89, autophagy:10}
   },
   alcohol:{
     icon:'🍷',label:'2+ drinks (legacy)',
     desc:'Legacy entry — use 1 glass wine/beer (press multiple) instead.',
-    cost:{fatox:42, ketones:5.3, mtor:210, gh:230, autophagy:55}
+    cost:{fatox:63, ketones:5.3, mtor:63, gh:230, autophagy:28}
   },
   late:{
     icon:'🌙',label:'Late eating',
     desc:'Dinner within 2h of bed',
-    cost:{fatox:19, ketones:2.1, mtor:88, gh:89, autophagy:23}
+    cost:{fatox:29, ketones:0, mtor:0, gh:89, autophagy:12}
   },
   heavy:{
     icon:'💥',label:'Heavy day',
     desc:'Multiple stacked: pizza + beer + dessert, festive overload',
-    cost:{fatox:143, ketones:19, mtor:350, gh:248, autophagy:55}
+    cost:{fatox:215, ketones:19, mtor:350, gh:372, autophagy:55}
   }
 };
 
@@ -734,47 +737,36 @@ function integrateActivation(fn, fastHours, paramKey, mealOffset){
   return integrateActivationMetabolic(paramKey, fn, fastHours, mealOffset);
 }
 
-// === MONTHLY TARGETS (dirty 16:8 = 16:8 with typical Western diet stress) ===
-// Targets = work level produced by 16:8 trial participants (gross minus diet stress)
-// Fat ox/mTOR/ketones positive (drive measured outcomes in trials)
-// GH/autophagy can be negative (Western diet eats them - trials don't show these benefits)
-// === MONTHLY TARGETS ===
-// Fat ox / mTOR / ketones: dirty 16:8 net (trial-validated outcome level)
-// GH / autophagy: clean 16:8 reference (positive scale - dirty trials produce ~zero of these)
-// Beating these means your protocol is delivering meaningful GH/autophagy work
-// that typical 16:8 trial participants do not achieve.
-// MONTHLY TARGETS v9 — RED LINES
-// fatox, ketones, mtor: DIRTY 16:8 (where typical Western 16:8 lands)
-// autophagy, gh: CLEAN 16:8 (longevity benchmark; dirty diet barely produces these)
+// === MONTHLY TARGETS (dirty 16:8 reference for measurable params only) ===
+// fatox/ketones/mtor track against monthly targets in the Progress panel.
+// autophagy/gh do NOT have monthly targets — they are tracked via Longevity Bands only
+// (Bronze 50-150, Silver 150-300, Gold 300+ h/yr — 30-day rolling rate).
 var MONTHLY_TARGETS={
-  fatox:721,        // dirty 16:8 monthly (clean 2166 - damage 1445)
-  ketones:66,       // dirty 16:8 monthly
-  mtor:6156,        // dirty 16:8 monthly
-  gh:1785,          // CLEAN 16:8 monthly
-  autophagy:810     // CLEAN 16:8 monthly
+  fatox:721,        // dirty 16:8 monthly net
+  ketones:66,       // dirty 16:8 monthly net
+  mtor:6156         // dirty 16:8 monthly net
 };
 
-// === OBJECTIVES v10 ===
-// fatox/ketones/mtor: dirty 16:8 cumulative at 3/6/12 months
-// autophagy/gh: clean 16:8 (longevity benchmark, ungated by diet)
+// === OBJECTIVES v11 ===
+// Objective gating uses fatox/ketones/mtor only. autophagy/gh are bands-only.
 var MILESTONES=[
   {
     n:1, label:'Objective 1',
-    targets:{fatox:2162, ketones:198, mtor:18468, autophagy:2430, gh:5355},
+    targets:{fatox:2162, ketones:198, mtor:18468},
     outcomes:{kg:1.6, cm:3.0, tg:25, homa:15},
-    desc:'16:8 at 3 months. Predicted: −1.6 kg fat, −3.0 cm waist, TG −25%, HOMA-IR −15%.'
+    desc:'3 months. Predicted: −1.6 kg fat, −3.0 cm waist, TG −25%, HOMA-IR −15%.'
   },
   {
     n:2, label:'Objective 2',
-    targets:{fatox:3243, ketones:297, mtor:27702, autophagy:3645, gh:8033},
+    targets:{fatox:3243, ketones:297, mtor:27702},
     outcomes:{kg:2.4, cm:4.5, tg:35, homa:22},
-    desc:'16:8 at 6 months (with plateau). Predicted: −2.4 kg fat, −4.5 cm waist, TG −35%, HOMA-IR −22%.'
+    desc:'6 months. Predicted: −2.4 kg fat, −4.5 cm waist, TG −35%, HOMA-IR −22%.'
   },
   {
     n:3, label:'Objective 3',
-    targets:{fatox:4595, ketones:416, mtor:38783, autophagy:5103, gh:11244},
+    targets:{fatox:4595, ketones:416, mtor:38783},
     outcomes:{kg:3.4, cm:6.5, tg:42, homa:32},
-    desc:'16:8 at 12 months (with full plateau). Predicted: −3.4 kg fat, −6.5 cm waist, TG −42%, HOMA-IR −32%.'
+    desc:'12 months. Predicted: −3.4 kg fat, −6.5 cm waist, TG −42%, HOMA-IR −32%.'
   }
 ];
 
@@ -889,6 +881,7 @@ function buildParamProgressHTML(){
   var html='<div class="param-progress-title"><span>Month-to-date vs 16:8 plan'+liveLabel+'</span><span class="param-progress-sub">Day '+dayOfMonth+'/'+daysInMonth+' · '+fasts.length+' fasts'+(excs.length?' · '+excs.length+' exc':'')+'</span></div>';
   
   PROCESSES.forEach(function(p){
+    if(p.key==='autophagy' || p.key==='gh') return; // bands-only
     var actual=actuals[p.key];
     var monthlyTarget=MONTHLY_TARGETS[p.key];
     var proRatedTarget=monthlyTarget*dayOfMonth/daysInMonth;
@@ -1475,6 +1468,7 @@ function renderProcessPanel(history,exceptions){
   
   html+='<div class="proc-panel" style="margin-top:8px"><div class="stats-title">Last 30 days · '+month.nFasts+' fasts · '+month.nExcs+' exceptions</div>';
   PROCESSES.forEach(function(p){
+    if(p.key==='autophagy' || p.key==='gh') return; // bands-only, shown elsewhere
     var grossV=month.gross[p.key];
     var netV=month.net[p.key];
     var setbackV=month.setbacks[p.key];
@@ -1483,11 +1477,12 @@ function renderProcessPanel(history,exceptions){
     var setbackTxt=setbackV>0?' (-'+Math.round(setbackV)+')':'';
     html+='<div class="proc-row"><span class="stat-icon">'+p.icon+'</span><span class="proc-name">'+p.name+'</span><div class="proc-bar-wrap"><div class="proc-bar" style="width:'+pctOfTarget+'%"></div></div><span class="proc-val">'+Math.round(netV)+setbackTxt+'</span></div>';
   });
-  html+='<div class="proc-info">Bar = % of monthly target (target = strict 16:8 daily). Setbacks shown in parens.</div></div>';
+  html+='<div class="proc-info">Bar = % of monthly target (dirty 16:8 reference). Autophagy/GH shown via bands on milestone card.</div></div>';
   
   // Quarterly P&L view
   html+='<div class="proc-panel" style="margin-top:8px"><div class="stats-title">Last 90 days · plan vs actual</div>';
   PROCESSES.forEach(function(p){
+    if(p.key==='autophagy' || p.key==='gh') return; // bands-only
     var grossV=quarter.gross[p.key];
     var netV=quarter.net[p.key];
     var setbackV=quarter.setbacks[p.key];
@@ -1496,7 +1491,7 @@ function renderProcessPanel(history,exceptions){
     var setbackTxt=setbackV>0?' (-'+Math.round(setbackV)+')':'';
     html+='<div class="proc-row"><span class="stat-icon">'+p.icon+'</span><span class="proc-name">'+p.name+'</span><div class="proc-bar-wrap"><div class="proc-bar" style="width:'+pctOfTarget+'%"></div></div><span class="proc-val">'+Math.round(netV)+'/'+tgt+'</span></div>';
   });
-  html+='<div class="proc-info">Quarterly target = 3 months × strict 16:8 daily. Net = work accumulated minus exception setbacks.</div></div>';
+  html+='<div class="proc-info">Quarterly target = 3 × monthly. Net = gross minus exception setbacks.</div></div>';
   
   pp.innerHTML=html;
 }
