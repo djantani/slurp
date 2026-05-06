@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#080c0a">
-<title>Slurp v10</title>
+<title>Slurp v11</title>
 <style>
 @font-face{font-family:'Serif Display';src:local('Georgia'),local('Times New Roman');font-weight:700;font-style:normal;}
 :root{--bg:#080c0a;--surface:#0f1a12;--surface2:#141f17;--accent:#4ade80;--warn12:#facc15;--warn14:#fb923c;--warn16:#c084fc;--warn24:#f472b6;--text:#e2f0e4;--text-dim:#4a6b50;--border:rgba(74,222,128,0.1);--border2:rgba(74,222,128,0.25);--mono:'SF Mono','Menlo','Consolas','DejaVu Sans Mono','Liberation Mono',monospace;--serif:Georgia,'Times New Roman',serif;}
@@ -372,6 +372,19 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
   </div>
 </div>
 
+<!-- LAST MEAL DIAL MODAL (v11) -->
+<div class="modal-overlay" id="mealDialModal" onclick="if(event.target===this)closeModal('mealDialModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Your last meal?</div>
+    <div class="modal-sub">Sets postprandial offset. Metabolic fast = clock − offset.</div>
+    <div id="mealDialBody"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('mealDialModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- PASTE IMPORT MODAL -->
 <div class="modal-overlay" id="pasteModal" onclick="if(event.target===this)closeModal('pasteModal')">
   <div class="modal">
@@ -395,10 +408,17 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
     <div class="time-block">
       <div class="time-block-label">Type</div>
       <select class="time-input" id="pe_type" style="width:100%;padding:13px;">
-        <option value="sugar">🍰 Sugar bolus</option>
-        <option value="processed">🍕 Processed meal</option>
-        <option value="alcohol_light">🥂 1 drink</option>
-        <option value="alcohol">🍷 Alcohol (>1 drink)</option>
+        <option value="dolce">🍰 Dolce / dessert</option>
+        <option value="homemade_gelato">🍦 Homemade gelato</option>
+        <option value="sugarydrink">🥤 Sugary drink</option>
+        <option value="pastry">🥐 Pastry</option>
+        <option value="refined_carb">🍞 Refined-carb meal</option>
+        <option value="fastpizza">🍕 Fast / chain pizza</option>
+        <option value="fastfood">🍔 Fast food</option>
+        <option value="ready_meal">🥫 Ready meal</option>
+        <option value="processed_meat">🥓 Processed meat</option>
+        <option value="alcohol_glass">🍷 1 glass wine/beer</option>
+        <option value="alcohol_spirit">🥃 1 spirit/cocktail</option>
         <option value="late">🌙 Late eating</option>
         <option value="heavy">💥 Heavy day</option>
       </select>
@@ -422,6 +442,8 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
 
 <script>
 var fastStart=null,ticker=null,notified={12:false,14:false,16:false,24:false};
+// v11: track the last-meal type and postprandial offset for the active fast
+var activeMealType='light_med', activeMealOffset=2;
 var historyOpen=false,activeDetail=null,activeTab='break';
 var editMode=null,editIndex=null;
 var confirmCallback=null;
@@ -437,60 +459,66 @@ var MS={
 // Calibrated to RER literature + 16:8 trial outcomes + user actual data (52d).
 // Each returns absolute INSTANTANEOUS RATE at fasting hour h.
 // Units differ per parameter — integrating gives accumulated work in real units.
-//
-// FAT OX: g fat / hour, based on RER % fat × RMR. Assumes 80kg, RMR 1632 kcal/day.
-//   Profile constants: RMR_KCAL_H = 68 (10*kg + 6.25*cm - 5*age + 5)/24
+
+// === v11 ACTIVATION CURVES (indexed by METABOLIC fast hours) ===
+// Rebased -5h from old clock-time curves (which were calibrated on Western diet ~5h postprandial).
+
+// FAT OXIDATION: returns g/h (RER-anchored, RMR 68 kcal/h)
+// Metabolic time targets: 0=50, 3=58, 7=71, 9=78, 11=82, 13=86, 19=97
 function actFatox(h){
-  // Returns g fat oxidized per hour
   var pct;
-  if(h<2)  pct = 40 + 4*h/2;
-  else if(h<6)  pct = 44 + 5*(h-2)/4;
-  else if(h<10) pct = 49 + 9*(h-6)/4;
-  else if(h<14) pct = 58 + 10*(h-10)/4;
-  else if(h<18) pct = 68 + 7*(h-14)/4;
-  else if(h<24) pct = 75 + 8*(h-18)/6;
-  else pct = 83;
-  return 68 * (pct/100) / 9.0;  // g/h = kcal/h × %fat / 9 kcal/g
+  if(h<3)  pct = 50 + 8*h/3;            // 50→58
+  else if(h<7)  pct = 58 + 13*(h-3)/4;   // 58→71
+  else if(h<9)  pct = 71 + 7*(h-7)/2;    // 71→78
+  else if(h<11) pct = 78 + 4*(h-9)/2;    // 78→82
+  else if(h<13) pct = 82 + 4*(h-11)/2;   // 82→86
+  else if(h<19) pct = 86 + 11*(h-13)/6;  // 86→97
+  else pct = 97;
+  return 68 * (pct/100) / 9.0;
 }
-// KETONES: BHB in mmol/L (instantaneous concentration)
+// KETONES: BHB mmol/L (instantaneous concentration)
+// Metabolic time targets: 0=0.15, 7=0.25, 9=0.35, 11=0.50, 13=0.70, 15=0.90, 19=1.20
 function actKetones(h){
-  if(h<8)  return 0.1 + 0.05*h/8;
-  if(h<12) return 0.15 + 0.10*(h-8)/4;
-  if(h<14) return 0.25 + 0.10*(h-12)/2;
-  if(h<16) return 0.35 + 0.15*(h-14)/2;
-  if(h<18) return 0.5 + 0.20*(h-16)/2;
-  if(h<20) return 0.7 + 0.20*(h-18)/2;
-  if(h<24) return 0.9 + 0.30*(h-20)/4;
-  return 1.2;
+  if(h<7)  return 0.15 + 0.10*h/7;
+  if(h<9)  return 0.25 + 0.10*(h-7)/2;
+  if(h<11) return 0.35 + 0.15*(h-9)/2;
+  if(h<13) return 0.50 + 0.20*(h-11)/2;
+  if(h<15) return 0.70 + 0.20*(h-13)/2;
+  if(h<19) return 0.90 + 0.30*(h-15)/4;
+  return 1.20;
 }
 // mTOR: % suppression
+// Metabolic time targets: 0=10, 3=15, 7=30, 9=40, 11=50, 13=60, 15=70, 19=85
 function actMTOR(h){
-  if(h<4)  return 0;
-  if(h<8)  return 15*(h-4)/4;
-  if(h<12) return 15+15*(h-8)/4;
-  if(h<16) return 30+15*(h-12)/4;
-  if(h<20) return 45+15*(h-16)/4;
-  if(h<24) return 60+15*(h-20)/4;
-  return 82;
+  if(h<3)  return 10 + 5*h/3;
+  if(h<7)  return 15 + 15*(h-3)/4;
+  if(h<9)  return 30 + 10*(h-7)/2;
+  if(h<11) return 40 + 10*(h-9)/2;
+  if(h<13) return 50 + 10*(h-11)/2;
+  if(h<15) return 60 + 10*(h-13)/2;
+  if(h<19) return 70 + 15*(h-15)/4;
+  return 85;
 }
 // AUTOPHAGY: % activation
+// Metabolic time targets: 7=0, 9=5, 11=17, 13=35, 15=52, 19=75
 function actAutophagy(h){
-  if(h<12) return 0;
-  if(h<14) return 5*(h-12)/2;
-  if(h<16) return 5 + 12*(h-14)/2;
-  if(h<18) return 17 + 18*(h-16)/2;
-  if(h<20) return 35 + 17*(h-18)/2;
-  if(h<24) return 52 + 23*(h-20)/4;
+  if(h<7)  return 0;
+  if(h<9)  return 5*(h-7)/2;
+  if(h<11) return 5 + 12*(h-9)/2;
+  if(h<13) return 17 + 18*(h-11)/2;
+  if(h<15) return 35 + 17*(h-13)/2;
+  if(h<19) return 52 + 23*(h-15)/4;
   return 75;
 }
 // GH: % above baseline pulse intensity
+// Metabolic time targets: 5=0, 9=12, 13=35, 17=65, 19=73
 function actGH(h){
-  if(h<10) return 0;
-  if(h<14) return 12*(h-10)/4;
-  if(h<18) return 12+23*(h-14)/4;
-  if(h<22) return 35+30*(h-18)/4;
-  if(h<28) return 65+25*(h-22)/6;
-  return 90;
+  if(h<5)  return 0;
+  if(h<9)  return 12*(h-5)/4;
+  if(h<13) return 12 + 23*(h-9)/4;
+  if(h<17) return 35 + 30*(h-13)/4;
+  if(h<19) return 65 + 8*(h-17)/2;
+  return 73;
 }
 
 var PROCESSES=[
@@ -500,6 +528,34 @@ var PROCESSES=[
   {key:'gh',name:'Growth hormone',fn:actGH,icon:'💪'},
   {key:'autophagy',name:'Autophagy',fn:actAutophagy,icon:'♻️'}
 ];
+
+// === v11: LAST-MEAL DIAL ===
+// Single source of truth for "what was your last meal before this fast started".
+// Sets postprandial offset (affects metabolic fast time) AND auto-fires
+// an exception if the meal type warrants it (industrial / heavy industrial).
+var LAST_MEAL_TYPES = [
+  {key:'light_med',  icon:'🥗', label:'Light Mediterranean',
+   desc:'Salad + legumes/fish/cheese + EVOO. Small portion, low GI.',
+   offset: 2, autoException: null},
+  {key:'normal_med', icon:'🍝', label:'Normal Mediterranean',
+   desc:'Pasta + protein + veg, risotto, pizza napoletana sourdough, regular dinner.',
+   offset: 3, autoException: null},
+  {key:'large_med',  icon:'🍽️', label:'Large Mediterranean',
+   desc:'Generous Italian meal, multiple courses. Still on-protocol food.',
+   offset: 4, autoException: null},
+  {key:'industrial', icon:'🍕', label:'Industrial / processed',
+   desc:'Fast pizza, ready meal, refined-carb takeaway. Auto-logs exception.',
+   offset: 5, autoException: 'fastpizza'},
+  {key:'heavy_ind',  icon:'🍔', label:'Heavy industrial',
+   desc:'Fast food, heavy fried, ultra-processed. Auto-logs exception.',
+   offset: 6.5, autoException: 'fastfood'}
+];
+function getMealType(key){
+  for(var i=0;i<LAST_MEAL_TYPES.length;i++){
+    if(LAST_MEAL_TYPES[i].key===key) return LAST_MEAL_TYPES[i];
+  }
+  return LAST_MEAL_TYPES[0]; // default Light Med
+}
 
 // === EXCEPTION TYPES & SETBACK VALUES ===
 // Calibrated against published 16:8 trial outcomes (typical Western diet during eating window).
@@ -558,14 +614,25 @@ var EXCEPTIONS={
     desc:'Mortadella industriale, würstel, sausages with nitrates, salame industriale',
     cost:{fatox:17, ketones:2.6, mtor:85, gh:26, autophagy:7.4}
   },
+  alcohol_glass:{
+    icon:'🍷',label:'1 glass wine/beer',
+    desc:'Single glass wine or half pint beer. Press multiple times for multiple drinks.',
+    cost:{fatox:8, ketones:1.2, mtor:50, gh:50, autophagy:12}
+  },
+  alcohol_spirit:{
+    icon:'🥃',label:'1 spirit/cocktail',
+    desc:'Single spirit, cocktail, or full pint. Press multiple times for multiple drinks.',
+    cost:{fatox:13, ketones:1.8, mtor:75, gh:75, autophagy:18}
+  },
+  // Legacy keys (kept for backward compatibility with existing logged exceptions)
   alcohol_light:{
-    icon:'🥂',label:'1 drink',
-    desc:'Single glass of wine, half pint, single spirit',
+    icon:'🥂',label:'1 drink (legacy)',
+    desc:'Legacy entry — use 1 glass wine/beer instead.',
     cost:{fatox:13, ketones:1.6, mtor:70, gh:89, autophagy:20}
   },
   alcohol:{
-    icon:'🍷',label:'2+ drinks',
-    desc:'Aperitivo serale, dinner drinking, 2+ glasses',
+    icon:'🍷',label:'2+ drinks (legacy)',
+    desc:'Legacy entry — use 1 glass wine/beer (press multiple) instead.',
     cost:{fatox:42, ketones:5.3, mtor:210, gh:230, autophagy:55}
   },
   late:{
@@ -623,19 +690,48 @@ var NOT_EXCEPTIONS=[
   {emoji:'🍫', text:'Dark chocolate 70%+ (small portion)'}
 ];
 
-// Integrate activation curve from 0 to fastHours using trapezoid (in %-hours)
-function integrateActivation(fn,fastHours){
-  if(fastHours<=0)return 0;
-  var steps=Math.max(2,Math.floor(fastHours*20));
-  var total=0;
-  var prev=fn(0);
-  for(var i=1;i<=steps;i++){
-    var h=i*fastHours/steps;
-    var v=fn(h);
-    total+=(prev+v)/2*(fastHours/steps);
-    prev=v;
+// === v11: METABOLIC TIME ===
+// Curves are now indexed by METABOLIC fast hours, not clock hours.
+// metabolic_hours = max(0, clock_hours - meal_offset)
+// Postprandial period (first meal_offset hours of clock time) uses BASELINE values:
+//   fat ox = 40% (RMR-anchored, ~3.02 g/h), ketones = 0.10 mmol/L, mTOR/auto/GH = 0
+// Default meal_offset = 2h (Light Mediterranean) for legacy fasts without mealType.
+
+var POSTPRANDIAL_BASELINE = {
+  fatox: 68 * 0.40 / 9.0,   // 3.022 g/h (baseline 40% fat oxidation)
+  ketones: 0.10,             // mmol/L
+  mtor: 0,                   // % suppression (meal raises mTOR; assume 0 suppression)
+  autophagy: 0,              // % activation
+  gh: 0                      // % above baseline
+};
+
+// Per-parameter metabolic-time integration with postprandial baseline period
+function integrateActivationMetabolic(paramKey, fn, fastHours, mealOffset){
+  if(fastHours<=0) return 0;
+  if(typeof mealOffset !== 'number') mealOffset = 2;  // default Light Med
+  var actualOffset = Math.min(mealOffset, fastHours);
+  var metabolicHrs = fastHours - actualOffset;
+  // Postprandial baseline contribution
+  var baselineVal = POSTPRANDIAL_BASELINE[paramKey] || 0;
+  var postprandialContrib = baselineVal * actualOffset;
+  // Metabolic period: integrate fn from 0 to metabolicHrs
+  if(metabolicHrs <= 0) return postprandialContrib;
+  var steps = Math.max(2, Math.floor(metabolicHrs * 20));
+  var total = 0;
+  var prev = fn(0);
+  for(var i=1; i<=steps; i++){
+    var h = i * metabolicHrs / steps;
+    var v = fn(h);
+    total += (prev + v) / 2 * (metabolicHrs / steps);
+    prev = v;
   }
-  return total;
+  return postprandialContrib + total;
+}
+
+// Legacy entry point — defaults to Light Med (2h offset) for callers that don't supply meal type
+function integrateActivation(fn, fastHours, paramKey, mealOffset){
+  if(typeof paramKey !== 'string') paramKey = ''; // fallback: skip postprandial baseline
+  return integrateActivationMetabolic(paramKey, fn, fastHours, mealOffset);
 }
 
 // === MONTHLY TARGETS (dirty 16:8 = 16:8 with typical Western diet stress) ===
@@ -770,14 +866,16 @@ function buildParamProgressHTML(){
   var actuals={};
   PROCESSES.forEach(function(p){actuals[p.key]=0;});
   fasts.forEach(function(f){
+    var off = (typeof f.mealOffset === 'number') ? f.mealOffset : 2;
     PROCESSES.forEach(function(p){
-      actuals[p.key]+=integrateActivation(p.fn,f.hours);
+      actuals[p.key]+=integrateActivationMetabolic(p.key,p.fn,f.hours,off);
     });
   });
   if(fastStart){
     var activeHours=(Date.now()-fastStart)/3600000;
+    var activeOff = (typeof activeMealOffset === 'number') ? activeMealOffset : 2;
     PROCESSES.forEach(function(p){
-      actuals[p.key]+=integrateActivation(p.fn,activeHours);
+      actuals[p.key]+=integrateActivationMetabolic(p.key,p.fn,activeHours,activeOff);
     });
   }
   excs.forEach(function(e){
@@ -818,14 +916,16 @@ function renderMilestoneCard(){
   var totals={};
   PROCESSES.forEach(function(p){totals[p.key]=0;});
   history.forEach(function(f){
+    var off = (typeof f.mealOffset === 'number') ? f.mealOffset : 2;
     PROCESSES.forEach(function(p){
-      totals[p.key]+=integrateActivation(p.fn,f.hours);
+      totals[p.key]+=integrateActivationMetabolic(p.key,p.fn,f.hours,off);
     });
   });
   if(fastStart){
     var ah=(Date.now()-fastStart)/3600000;
+    var ahOff = (typeof activeMealOffset === 'number') ? activeMealOffset : 2;
     PROCESSES.forEach(function(p){
-      totals[p.key]+=integrateActivation(p.fn,ah);
+      totals[p.key]+=integrateActivationMetabolic(p.key,p.fn,ah,ahOff);
     });
   }
   exceptions.forEach(function(e){
@@ -912,13 +1012,8 @@ function renderMilestoneCard(){
         history.forEach(function(f){
           if(f.start >= thirtyDaysAgo){
             var fn = (p.key==='autophagy') ? actAutophagy : actGH;
-            var L = f.hours, n = 100;
-            var t = 0, prev = fn(0);
-            for(var i=1; i<=n; i++){
-              var x = i*L/n; var v = fn(x);
-              t += (prev+v)/2 * (L/n); prev = v;
-            }
-            rolling_pct_h += t;
+            var off = (typeof f.mealOffset === 'number') ? f.mealOffset : 2;
+            rolling_pct_h += integrateActivationMetabolic(p.key, fn, f.hours, off);
           }
         });
         var annualHrs = rolling_pct_h / rolling_days * 365 / 100;
@@ -996,7 +1091,7 @@ function renderMilestoneCard(){
       html+='<div class="ms-pace-text">'+paceText+'</div>';
     }
     
-    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = dirty 16:8 calendar pace at day '+Math.floor(actualDays)+' of '+(sliceStartDay+sliceLengthDays)+'. Fat ox/mTOR/ketones target = dirty 16:8 trial level. GH/autophagy target = clean 16:8.</div>';
+    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = calendar pace at day '+Math.floor(actualDays)+' of '+(sliceStartDay+sliceLengthDays)+'.</div>';
     
     html+='<div class="ms-target-desc"><strong>Objective '+targetN+' definition:</strong> '+nextObj.desc+'</div>';
     
@@ -1205,6 +1300,11 @@ function tick(){
   var h=Math.floor(elapsed/3600000),m=Math.floor((elapsed%3600000)/60000),s=Math.floor((elapsed%60000)/1000);
   document.getElementById('bigTimer').textContent=pad(h)+':'+pad(m)+':'+pad(s);
   var hrs=elapsed/3600000;
+  // v11: show metabolic fast time = clock - postprandial offset
+  var metabolicH = Math.max(0, hrs - activeMealOffset);
+  var meal = getMealType(activeMealType);
+  document.getElementById('timerSub').textContent =
+    'metabolic: ' + metabolicH.toFixed(1) + 'h · last meal: ' + meal.icon + ' ' + meal.label + ' (' + activeMealOffset + 'h)';
   // Notification thresholds (still useful even without pills)
   [12,14,16,24].forEach(function(threshold){
     if(hrs>=threshold){
@@ -1249,8 +1349,13 @@ function saveHistoryArr(arr){
   // Auto-trigger a download backup every fast end
   try { triggerAutoBackup(arr); } catch(e){ console.log('backup error',e); }
 }
-function saveHistory(start,end,hours){
-  var h=getHistory();h.unshift({start:start,end:end,hours:hours});saveHistoryArr(h);
+function saveHistory(start,end,hours,mealType,mealOffset){
+  var h=getHistory();
+  var rec={start:start,end:end,hours:hours};
+  if(mealType) rec.mealType=mealType;
+  if(typeof mealOffset==='number') rec.mealOffset=mealOffset;
+  h.unshift(rec);
+  saveHistoryArr(h);
 }
 
 // === AUTOMATIC BACKUP DOWNLOAD ===
@@ -1265,7 +1370,7 @@ function triggerAutoBackup(history){
   
   var data={
     exported_at: new Date().toISOString(),
-    version: 'slurp-v10',
+    version: 'slurp-v11',
     history: history,
     exceptions: JSON.parse(localStorage.getItem('slurp_exceptions')||'[]'),
     measurements: JSON.parse(localStorage.getItem('slurp_measurements')||'{}'),
@@ -1332,8 +1437,9 @@ function computeProcessWork(history,exceptions,daysBack){
   var totals={};
   PROCESSES.forEach(function(p){totals[p.key]=0;});
   fasts.forEach(function(f){
+    var off = (typeof f.mealOffset === 'number') ? f.mealOffset : 2;
     PROCESSES.forEach(function(p){
-      totals[p.key]+=integrateActivation(p.fn,f.hours);
+      totals[p.key]+=integrateActivationMetabolic(p.key,p.fn,f.hours,off);
     });
   });
   // Apply exception setbacks
@@ -1399,7 +1505,7 @@ function renderExceptionPanel(exceptions){
   var ep=document.getElementById('excPanel');
   var html='<div class="proc-panel"><div class="stats-title">Tap to log an exception</div>';
   html+='<div class="exc-buttons">';
-  ['dolce','homemade_gelato','sugarydrink','pastry','refined_carb','fastpizza','fastfood','ready_meal','processed_meat','alcohol_light','alcohol','late','heavy'].forEach(function(key){
+  ['dolce','homemade_gelato','sugarydrink','pastry','refined_carb','fastpizza','fastfood','ready_meal','processed_meat','alcohol_glass','alcohol_spirit','late','heavy'].forEach(function(key){
     var e=EXCEPTIONS[key];
     var totalCost=Object.values(e.cost).reduce(function(a,b){return a+b;},0);
     html+='<button class="exc-btn" onclick="addException(\''+key+'\')"><span class="exc-icon">'+e.icon+'</span><span class="exc-label">'+e.label+'</span><span class="exc-cost">'+e.desc+'</span></button>';
@@ -1428,7 +1534,8 @@ function renderPlanPanel(history,exceptions){
   // Calculate accumulated NET autophagy work over all history
   var totalNetAutophagy=0;
   history.forEach(function(f){
-    totalNetAutophagy+=integrateActivation(actAutophagy,f.hours);
+    var off = (typeof f.mealOffset === 'number') ? f.mealOffset : 2;
+    totalNetAutophagy+=integrateActivationMetabolic('autophagy',actAutophagy,f.hours,off);
   });
   exceptions.forEach(function(e){
     if(EXCEPTIONS[e.type]) totalNetAutophagy-=EXCEPTIONS[e.type].cost.autophagy;
@@ -1836,29 +1943,66 @@ function handleImport(event){
 
 function toggleFast(){
   if(!fastStart){
-    fastStart=Date.now();
-    notified={12:false,14:false,16:false,24:false};
-    localStorage.setItem('slurp_start',fastStart);
-    saveNotified();
-    document.getElementById('recBanner').classList.add('hidden');
-    setFastingUI();tick();
-    ticker=setInterval(tick,1000);
-    showToast('🌙','Fast started!','tok');
-    if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+    // v11: open the last-meal dial modal first
+    openMealDial();
   } else {
     var hours=(Date.now()-fastStart)/3600000;
-    saveHistory(fastStart,Date.now(),hours);
+    saveHistory(fastStart,Date.now(),hours,activeMealType,activeMealOffset);
     stopFast();
     showToast('✅','Fast saved. Enjoy your meal!','tok');
     setTimeout(checkRecommendation,400);
   }
 }
 
+// v11: render the last-meal dial buttons
+function openMealDial(){
+  var body=document.getElementById('mealDialBody');
+  var html='';
+  LAST_MEAL_TYPES.forEach(function(m){
+    var excTag = m.autoException ? '<div style="font-size:0.65rem;color:#fbbf24;margin-top:3px;">⚠ auto-logs exception</div>' : '';
+    html+='<button class="meal-dial-btn" onclick="startFastWithMeal(\''+m.key+'\')" style="display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;color:var(--text);font-family:inherit;cursor:pointer;">'
+       +'<div style="font-weight:600;font-size:0.92rem;">'+m.icon+' '+m.label+' <span style="float:right;color:var(--text-dim);font-weight:400;font-size:0.78rem;">'+m.offset+'h offset</span></div>'
+       +'<div style="font-size:0.72rem;color:var(--text-dim);margin-top:3px;line-height:1.35;">'+m.desc+'</div>'
+       +excTag
+       +'</button>';
+  });
+  body.innerHTML=html;
+  document.getElementById('mealDialModal').classList.add('open');
+}
+
+// v11: actually start the fast with the chosen meal type
+function startFastWithMeal(mealKey){
+  var meal = getMealType(mealKey);
+  activeMealType = meal.key;
+  activeMealOffset = meal.offset;
+  fastStart=Date.now();
+  notified={12:false,14:false,16:false,24:false};
+  localStorage.setItem('slurp_start',fastStart);
+  localStorage.setItem('slurp_active_meal_type',meal.key);
+  localStorage.setItem('slurp_active_meal_offset',meal.offset);
+  saveNotified();
+  document.getElementById('recBanner').classList.add('hidden');
+  closeModal('mealDialModal');
+  setFastingUI();tick();
+  ticker=setInterval(tick,1000);
+  showToast('🌙','Fast started · '+meal.label,'tok');
+  // Auto-fire exception if this meal type warrants it
+  if(meal.autoException && EXCEPTIONS[meal.autoException]){
+    var excs=getExceptions();
+    excs.unshift({type:meal.autoException, timestamp:Date.now(), auto:true});
+    saveExceptions(excs);
+  }
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+}
+
 function stopFast(){
   clearInterval(ticker);ticker=null;
   fastStart=null;notified={12:false,14:false,16:false,24:false};
+  activeMealType='light_med'; activeMealOffset=2;
   localStorage.removeItem('slurp_start');
   localStorage.removeItem('slurp_notified');
+  localStorage.removeItem('slurp_active_meal_type');
+  localStorage.removeItem('slurp_active_meal_offset');
   setEatingUI();renderHistory();
 }
 
@@ -1900,6 +2044,11 @@ function loadState(){
   var s=localStorage.getItem('slurp_start');
   if(s){
     fastStart=parseInt(s);
+    // v11: restore active meal type/offset
+    var savedMealType = localStorage.getItem('slurp_active_meal_type');
+    var savedMealOffset = parseFloat(localStorage.getItem('slurp_active_meal_offset'));
+    if(savedMealType) activeMealType = savedMealType;
+    if(!isNaN(savedMealOffset)) activeMealOffset = savedMealOffset;
     migrateNotified();
     setFastingUI();tick();
     ticker=setInterval(tick,1000);
