@@ -349,10 +349,8 @@ body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-
   <div class="history-panel" id="histPanel">
     <div class="tabs">
       <button class="tab active" id="tabBreak" onclick="setTab('break')">Fasts</button>
-      <button class="tab" id="tabProc" onclick="setTab('proc')">Progress</button>
       <button class="tab" id="tabExc" onclick="setTab('exc')">Exceptions</button>
       <button class="tab" id="tabMeas" onclick="setTab('meas')">Measurements</button>
-      <button class="tab" id="tabPlan" onclick="setTab('plan')">12mo Plan</button>
       <button class="tab" id="tabList" onclick="setTab('list')">List</button>
     </div>
     <div id="statsPanel"></div>
@@ -820,19 +818,19 @@ function predictIGF1Reduction(fatox_g){
 // Outcomes derived from saturation curves at each checkpoint given linear pace.
 var MILESTONES=[
   {
-    n:1, label:'3 months', days:90,
+    n:1, label:'3-month plan', days:90,
     targets:{fatox:5009, ketones:301, mtor:27782},
     outcomes:{kg:3.0, cm:3.6, tg:21, homa:25, igf1:5},
     desc:'3 months · target outcomes: −3.0 kg / −3.6 cm waist / TG −21% / HOMA-IR −25% / IGF-1 −5%.'
   },
   {
-    n:2, label:'6 months', days:180,
+    n:2, label:'6-month plan', days:180,
     targets:{fatox:10019, ketones:601, mtor:55564},
     outcomes:{kg:5.0, cm:6.1, tg:35, homa:39, igf1:8},
     desc:'6 months · target outcomes: −5.0 kg / −6.1 cm / TG −35% / HOMA-IR −39% / IGF-1 −8%.'
   },
   {
-    n:3, label:'12 months · endpoint', days:360,
+    n:3, label:'12-month plan', days:360,
     targets:{fatox:20038, ketones:1202, mtor:111128},
     outcomes:{kg:7.1, cm:8.5, tg:49, homa:48, igf1:12},
     desc:'12 months endpoint · target outcomes: 75 kg / 88 cm waist / TG 120 / HOMA-IR 1.25 / IGF-1 −12%. After this: maintenance phase.'
@@ -1102,7 +1100,7 @@ function renderMilestoneCard(){
           if(annualHrs >= bands[bi].min){curBand = bands[bi]; break;}
         }
         pctClass = curBand.name === 'Baseline' ? 'behind' : 'ahead';
-        rightLabel = Math.round(annualHrs) + ' h/yr';
+        rightLabel = Math.round(annualHrs) + ' h/yr · ' + curBand.name;
         
         // Track zones
         var stops = [];
@@ -1135,6 +1133,9 @@ function renderMilestoneCard(){
         html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Calendar pace at day '+Math.floor(actualDays)+'"></div>';
       }
       html+='</div>';
+      if(isLongevity){
+        html+='<div style="font-size:0.7rem;color:var(--text-dim);margin-top:4px;line-height:1.35;padding-left:2px;">'+curBand.desc+'</div>';
+      }
       html+='</div>';
     });
     
@@ -1167,21 +1168,14 @@ function renderMilestoneCard(){
     
     html+='<div class="ms-legend"><span class="ms-legend-line"></span> = calendar pace at day '+Math.floor(actualDays)+' of '+(sliceStartDay+sliceLengthDays)+'.</div>';
     
-    // Current predicted outcomes from saturation formulas
-    var currentKg = predictWeightLoss(totals.fatox);
-    var currentCm = predictWaistLoss(totals.fatox);
-    var currentTg = predictTGReduction(totals.fatox);
-    var currentHoma = predictHOMAReduction(totals.mtor, totals.autophagy);
-    var currentIgf1 = predictIGF1Reduction(totals.fatox);
-    
     html+='<div class="ms-target-desc"><strong>Working toward: '+nextObj.label+'</strong>';
     html+='<table style="width:100%;font-size:0.78rem;margin-top:8px;border-collapse:collapse;">';
-    html+='<tr style="color:var(--text2);"><td style="padding:3px 0;">Outcome</td><td style="text-align:right;padding:3px 4px;">Now</td><td style="text-align:right;padding:3px 0;">Target</td></tr>';
-    html+='<tr><td style="padding:3px 0;">Weight</td><td style="text-align:right;padding:3px 4px;">−'+currentKg.toFixed(1)+' kg</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.kg.toFixed(1)+' kg</td></tr>';
-    html+='<tr><td style="padding:3px 0;">Waist</td><td style="text-align:right;padding:3px 4px;">−'+currentCm.toFixed(1)+' cm</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.cm.toFixed(1)+' cm</td></tr>';
-    html+='<tr><td style="padding:3px 0;">Triglycerides</td><td style="text-align:right;padding:3px 4px;">−'+currentTg.toFixed(0)+'%</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.tg+'%</td></tr>';
-    html+='<tr><td style="padding:3px 0;">HOMA-IR</td><td style="text-align:right;padding:3px 4px;">−'+currentHoma.toFixed(0)+'%</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.homa+'%</td></tr>';
-    html+='<tr><td style="padding:3px 0;">IGF-1</td><td style="text-align:right;padding:3px 4px;">−'+currentIgf1.toFixed(1)+'%</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.igf1+'%</td></tr>';
+    html+='<tr style="color:var(--text2);"><td style="padding:3px 0;">Outcome</td><td style="text-align:right;padding:3px 0;">Target</td></tr>';
+    html+='<tr><td style="padding:3px 0;">Weight</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.kg.toFixed(1)+' kg</td></tr>';
+    html+='<tr><td style="padding:3px 0;">Waist</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.cm.toFixed(1)+' cm</td></tr>';
+    html+='<tr><td style="padding:3px 0;">Triglycerides</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.tg+'%</td></tr>';
+    html+='<tr><td style="padding:3px 0;">HOMA-IR</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.homa+'%</td></tr>';
+    html+='<tr><td style="padding:3px 0;">IGF-1</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.igf1+'%</td></tr>';
     html+='</table></div>';
     
     // Compact longevity band legend
@@ -1506,16 +1500,14 @@ function restoreFromFile(file){
 function setTab(tab){
   activeTab=tab;
   document.getElementById('tabBreak').className='tab'+(tab==='break'?' active':'');
-  document.getElementById('tabProc').className='tab'+(tab==='proc'?' active':'');
   document.getElementById('tabExc').className='tab'+(tab==='exc'?' active':'');
   document.getElementById('tabMeas').className='tab'+(tab==='meas'?' active':'');
-  document.getElementById('tabPlan').className='tab'+(tab==='plan'?' active':'');
   document.getElementById('tabList').className='tab'+(tab==='list'?' active':'');
   document.getElementById('statsPanel').style.display=tab==='break'?'block':'none';
-  document.getElementById('procPanel').style.display=tab==='proc'?'block':'none';
+  document.getElementById('procPanel').style.display='none';
   document.getElementById('excPanel').style.display=tab==='exc'?'block':'none';
   document.getElementById('measPanel').style.display=tab==='meas'?'block':'none';
-  document.getElementById('planPanel').style.display=tab==='plan'?'block':'none';
+  document.getElementById('planPanel').style.display='none';
   document.getElementById('histList').style.display=tab==='list'?'block':'none';
 }
 
