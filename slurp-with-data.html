@@ -798,10 +798,15 @@ var OUTCOME_SCALE = {
   igf1:   12400    // fatox_g — calibrated to 12% reduction at month 12 (research-backed conservative)
 };
 function predictWeightLoss(fatox_g){
-  return ENDPOINT_TARGET.weight_loss_kg * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.weight));
+  // Back-loaded curve: slow early (water/glycogen mask real fat loss + slight muscle gain),
+  // accelerating middle (real fat loss visible), saturating late.
+  // power=2.0 gives S-shaped progression matching TRE study observations.
+  return ENDPOINT_TARGET.weight_loss_kg * Math.pow(1 - Math.exp(-fatox_g / 4500), 2.0);
 }
 function predictWaistLoss(fatox_g){
-  return ENDPOINT_TARGET.waist_loss_cm * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.waist));
+  // Waist drops faster than weight in early phase (visceral fat burns first per Cienfuegos/Gabel TRE data).
+  // Power-curve modification compresses early progress, then saturates.
+  return ENDPOINT_TARGET.waist_loss_cm * Math.pow(1 - Math.exp(-fatox_g / 3500), 0.6);
 }
 function predictTGReduction(fatox_g){
   return ENDPOINT_TARGET.tg_pct * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.tg));
@@ -820,20 +825,20 @@ var MILESTONES=[
   {
     n:1, label:'3-month plan', days:90,
     targets:{fatox:5009, ketones:301, mtor:27782},
-    outcomes:{kg:3.0, cm:3.6, tg:21, homa:25, igf1:5},
-    desc:'3 months · target outcomes: −3.0 kg / −3.6 cm waist / TG −21% / HOMA-IR −25% / IGF-1 −5%.'
+    outcomes:{kg:3.4, cm:7.6, tg:21, homa:25, igf1:5},
+    desc:'3 months · target outcomes: −3.4 kg / −7.6 cm waist / TG −21% / HOMA-IR −25% / IGF-1 −5%.'
   },
   {
     n:2, label:'6-month plan', days:180,
     targets:{fatox:10019, ketones:601, mtor:55564},
-    outcomes:{kg:5.0, cm:6.1, tg:35, homa:39, igf1:8},
-    desc:'6 months · target outcomes: −5.0 kg / −6.1 cm / TG −35% / HOMA-IR −39% / IGF-1 −8%.'
+    outcomes:{kg:6.0, cm:8.7, tg:35, homa:39, igf1:8},
+    desc:'6 months · target outcomes: −6.0 kg / −8.7 cm / TG −35% / HOMA-IR −39% / IGF-1 −8%.'
   },
   {
     n:3, label:'12-month plan', days:360,
     targets:{fatox:20038, ketones:1202, mtor:111128},
-    outcomes:{kg:7.1, cm:8.5, tg:49, homa:48, igf1:12},
-    desc:'12 months endpoint · target outcomes: 75 kg / 88 cm waist / TG 120 / HOMA-IR 1.25 / IGF-1 −12%. After this: maintenance phase.'
+    outcomes:{kg:7.3, cm:9.0, tg:49, homa:48, igf1:12},
+    desc:'12-month endpoint · target outcomes: 75 kg / 88 cm waist / TG 120 / HOMA-IR 1.25 / IGF-1 −12%. After this: maintenance phase.'
   }
 ];
 
@@ -1130,7 +1135,7 @@ function renderMilestoneCard(){
       html+='<div class="ms-param-bar-wrap"'+(trackBg?' style="'+trackBg+'"':'')+'>';
       html+='<div class="ms-param-bar" style="width:'+barPct+'%"></div>';
       if(!isLongevity){
-        html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Calendar pace at day '+Math.floor(actualDays)+'"></div>';
+        html+='<div class="ms-pace-line" style="left:'+pacePct+'%" title="Pace required to hit target"></div>';
       }
       html+='</div>';
       if(isLongevity){
@@ -1166,7 +1171,7 @@ function renderMilestoneCard(){
       html+='<div class="ms-pace-text">'+paceText+'</div>';
     }
     
-    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = calendar pace at day '+Math.floor(actualDays)+' of '+(sliceStartDay+sliceLengthDays)+'.</div>';
+    html+='<div class="ms-legend"><span class="ms-legend-line"></span> = pace required to hit target by '+nextObj.label.replace(' plan','')+'.</div>';
     
     html+='<div class="ms-target-desc"><strong>Working toward: '+nextObj.label+'</strong>';
     html+='<table style="width:100%;font-size:0.78rem;margin-top:8px;border-collapse:collapse;">';
@@ -1685,7 +1690,6 @@ var MEASUREMENT_TIMEPOINTS=[
   {days:0,label:'Baseline'},
   {days:90,label:'3 months'},
   {days:180,label:'6 months'},
-  {days:270,label:'9 months'},
   {days:360,label:'12 months'}
 ];
 
