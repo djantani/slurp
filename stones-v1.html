@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>Stones v1</title>
+<style>
+:root{--bg:#0a0a0a;--surface:#171717;--surface2:#1f1f1f;--border:#2a2a2a;--border2:#3a3a3a;--text:#f5f5f5;--text2:#a3a3a3;--accent:#60a5fa;--good:#4ade80;--warn:#fb923c;--bad:#ef4444;--gold:#eab308;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;}
+body{padding:14px 14px 30px;max-width:520px;margin:0 auto;}
+h1{font-size:1.6rem;font-weight:700;margin:0;color:var(--accent);}
+h1 em{font-style:italic;font-size:0.85rem;color:var(--text2);font-weight:400;display:block;margin-top:2px;}
+h2{font-size:1.05rem;font-weight:600;margin:18px 0 10px;color:var(--text);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;}
+.card-title{font-size:0.85rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+label{font-size:0.85rem;color:var(--text2);min-width:120px;}
+input,select{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 10px;border-radius:8px;font-size:0.95rem;font-family:inherit;}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+button{background:var(--accent);border:none;color:#0a0a0a;padding:10px 16px;border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;font-family:inherit;}
+button:active{opacity:0.7;}
+button.ghost{background:transparent;border:1px solid var(--border2);color:var(--text);}
+button.danger{background:var(--bad);color:#fff;}
+.big-stat{font-size:2.4rem;font-weight:700;text-align:center;line-height:1;margin:6px 0;}
+.stat-sub{text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:8px;}
+.ph-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0;}
+.ph-cell{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:8px 4px;text-align:center;}
+.ph-cell-time{font-size:0.7rem;color:var(--text2);margin-bottom:4px;}
+.ph-cell input{width:100%;text-align:center;padding:4px 2px;font-size:1.1rem;font-weight:600;background:transparent;border:none;color:var(--text);}
+.ph-cell input:focus{background:rgba(96,165,250,0.1);}
+.factor-bar{height:8px;background:linear-gradient(to right,#ef4444 0%,#ef4444 16%,#fb923c 25%,#facc15 45%,#4ade80 65%,#4ade80 85%,#eab308 100%);border-radius:4px;position:relative;margin:6px 0;}
+.factor-marker{position:absolute;top:-3px;width:3px;height:14px;background:#fff;border-radius:2px;box-shadow:0 0 4px rgba(0,0,0,0.6);}
+.factor-labels{display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text2);margin-top:2px;}
+.day-row{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem;}
+.day-row:last-child{border-bottom:none;}
+.day-row .day-date{flex:0 0 80px;color:var(--text2);}
+.day-row .day-ph{flex:1;}
+.day-row .day-pct{flex:0 0 70px;text-align:right;font-weight:600;color:var(--good);}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:0.72rem;background:var(--surface2);color:var(--text2);margin-right:4px;}
+.help{font-size:0.78rem;color:var(--text2);line-height:1.45;margin-top:6px;}
+.help strong{color:var(--text);}
+hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.warn-box{background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.3);border-radius:8px;padding:10px;font-size:0.82rem;color:#fed7aa;margin-bottom:12px;}
+.success-box{background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:10px;font-size:0.82rem;color:#bbf7d0;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<h1>Stones <em>uric acid stone tracker</em></h1>
+
+<!-- BASELINE -->
+<div class="card">
+  <div class="card-title">Baseline</div>
+  <div class="row"><label>Stone size (mm)</label><input type="number" id="stoneSize" step="0.5" placeholder="7"></div>
+  <div class="row"><label>Serum urate (mg/dL)</label><input type="number" id="urate" step="0.1" placeholder="6.4"></div>
+  <div class="row"><label>Started protocol</label><input type="date" id="startDate"></div>
+  <button onclick="saveBaseline()">Save baseline</button>
+</div>
+
+<!-- TODAY -->
+<div class="card">
+  <div class="card-title">Today's pH readings</div>
+  <div class="ph-grid">
+    <div class="ph-cell"><div class="ph-cell-time">Wake</div><input type="number" step="0.1" id="ph1" placeholder="—" inputmode="decimal"></div>
+    <div class="ph-cell"><div class="ph-cell-time">Mid AM</div><input type="number" step="0.1" id="ph2" placeholder="—" inputmode="decimal"></div>
+    <div class="ph-cell"><div class="ph-cell-time">Pre-lunch</div><input type="number" step="0.1" id="ph3" placeholder="—" inputmode="decimal"></div>
+    <div class="ph-cell"><div class="ph-cell-time">Evening</div><input type="number" step="0.1" id="ph4" placeholder="—" inputmode="decimal"></div>
+    <div class="ph-cell"><div class="ph-cell-time">Bedtime</div><input type="number" step="0.1" id="ph5" placeholder="—" inputmode="decimal"></div>
+  </div>
+  <div class="row"><label>Fluid intake (L)</label><input type="number" step="0.1" id="fluids" placeholder="2.5" inputmode="decimal"></div>
+  <button onclick="saveDay()">Save today</button>
+  <button class="ghost" onclick="clearToday()">Clear</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="card">
+  <div class="card-title">Dissolution forecast</div>
+  <div class="big-stat" id="bigStat">—</div>
+  <div class="stat-sub" id="bigStatSub">enter today's pH readings</div>
+  <hr>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.85rem;">
+    <div><div style="color:var(--text2);font-size:0.75rem;">Today's avg factor</div><div id="todayFactor" style="font-weight:600;font-size:1.1rem;">—</div></div>
+    <div><div style="color:var(--text2);font-size:0.75rem;">Today's % dissolved</div><div id="todayPct" style="font-weight:600;font-size:1.1rem;">—</div></div>
+    <div><div style="color:var(--text2);font-size:0.75rem;">Cumulative dissolved</div><div id="cumPct" style="font-weight:600;font-size:1.1rem;">—</div></div>
+    <div><div style="color:var(--text2);font-size:0.75rem;">Est. time to fully dissolve</div><div id="etaDays" style="font-weight:600;font-size:1.1rem;">—</div></div>
+  </div>
+</div>
+
+<!-- GUIDANCE -->
+<div class="card">
+  <div class="card-title">Measurement guidance</div>
+  <div id="guidanceBox" class="help">
+    <strong>Recommended measurements/day:</strong> <span id="recCount">5</span><br>
+    <span id="guidanceText">First 2 weeks: 5 readings/day to profile your pH pattern. After that: 2 readings (wake + bedtime) suffice.</span>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="card">
+  <div class="card-title">History (last 14 days)</div>
+  <div id="historyList"></div>
+  <button class="ghost" style="margin-top:8px;" onclick="exportData()">⬇️ Export backup</button>
+  <button class="ghost" onclick="document.getElementById('importFile').click()">📥 Import backup</button>
+  <input type="file" id="importFile" accept=".json" style="display:none;" onchange="if(this.files[0])importData(this.files[0])">
+</div>
+
+<!-- INFO -->
+<div class="card">
+  <div class="card-title">How dissolution works</div>
+  <div class="help">
+    Uric acid stones dissolve when urine pH stays above 6.5. <strong>Hours per day at high pH</strong> matter more than morning pH alone.<br><br>
+    <strong>Dissolution rate by pH:</strong><br>
+    <span class="tag" style="background:#ef4444;color:#fff;">≤5.5: 0%</span>
+    <span class="tag" style="background:#fb923c;color:#fff;">6.0: 20%</span>
+    <span class="tag" style="background:#facc15;color:#000;">6.5: 60%</span>
+    <span class="tag" style="background:#4ade80;color:#000;">7.0: 100%</span>
+    <span class="tag" style="background:#eab308;color:#000;">7.2: 115%</span>
+    <br><br>
+    Calibration: at pH 6.5 sustained 24h, dissolution rate ≈ 0.6%/day (Wilkinson 2021 cohort: half-volume in 86 days).
+  </div>
+</div>
+
+<script>
+// === pH → solubility / dissolution factor ===
+// Calibrated from: Moe 2022 (rate increases mainly above 6.5, optimal 7.2)
+// Wilkinson 2021 (responder rate 0.6%/day = ref point at sustained pH 6.5)
+function phFactor(ph){
+  if(ph<=5.0) return 0;
+  if(ph<=5.5) return 0.05*(ph-5.0)/0.5;
+  if(ph<=6.0) return 0.05+0.15*(ph-5.5)/0.5;
+  if(ph<=6.2) return 0.20+0.15*(ph-6.0)/0.2;
+  if(ph<=6.5) return 0.35+0.25*(ph-6.2)/0.3;
+  if(ph<=6.8) return 0.60+0.20*(ph-6.5)/0.3;
+  if(ph<=7.0) return 0.80+0.20*(ph-6.8)/0.2;
+  if(ph<=7.2) return 1.00+0.15*(ph-7.0)/0.2;
+  if(ph<=7.5) return 1.15+0.05*(ph-7.2)/0.3;
+  return 1.20;
+}
+
+// Reference dissolution rate at pH 6.5 sustained 24h = 0.6%/day
+// At factor 0.60 (which is pH 6.5), rate = 0.6%/day → k = 1.0
+var DAILY_PCT_AT_FACTOR_1 = 1.0; // means: factor 1.0 (pH 7.0) gives 1.0%/day
+
+// === Time-weighted average pH factor ===
+// Reading times approx: wake 7am, midAM 11am, prelunch 1pm, evening 7pm, bedtime 11pm
+// Time slices each reading represents:
+//  wake (overnight + early): 7h (midnight-7am roughly)
+//  midAM: 4h (7am-11am)
+//  prelunch: 2h (11am-1pm)
+//  evening: 6h (1pm-7pm)
+//  bedtime: 5h (7pm-midnight, gradient down)
+var TIME_WEIGHTS = [7, 4, 2, 6, 5]; // sum = 24
+
+function dayFactor(phReadings){
+  // phReadings = [wake, midAM, prelunch, evening, bedtime] - any can be null
+  var totalWeight = 0;
+  var weightedSum = 0;
+  for(var i=0; i<5; i++){
+    if(phReadings[i] !== null && !isNaN(phReadings[i])){
+      var f = phFactor(phReadings[i]);
+      weightedSum += f * TIME_WEIGHTS[i];
+      totalWeight += TIME_WEIGHTS[i];
+    }
+  }
+  if(totalWeight===0) return null;
+  return weightedSum / totalWeight;
+}
+
+function dailyPct(factor, fluids){
+  // Adjust for fluid intake — more flow = more dissolution
+  // 2L = baseline, 1L = 0.7×, 3L = 1.2×, 4L = 1.3× (diminishing)
+  var fluidMult = 1.0;
+  if(fluids){
+    if(fluids < 1.0) fluidMult = 0.6;
+    else if(fluids < 1.5) fluidMult = 0.75;
+    else if(fluids < 2.0) fluidMult = 0.9;
+    else if(fluids < 2.5) fluidMult = 1.0;
+    else if(fluids < 3.0) fluidMult = 1.15;
+    else fluidMult = 1.25;
+  }
+  return factor * DAILY_PCT_AT_FACTOR_1 * fluidMult;
+}
+
+// === Storage ===
+function loadData(){
+  return JSON.parse(localStorage.getItem('stones_data')||'{"baseline":{},"days":{}}');
+}
+function saveData(d){
+  localStorage.setItem('stones_data', JSON.stringify(d));
+  localStorage.setItem('stones_data_backup', JSON.stringify(d));
+  triggerBackup(d);
+}
+
+var _lastBackup = 0;
+function triggerBackup(d){
+  var now = Date.now();
+  if(now - _lastBackup < 5*60*1000) return;
+  _lastBackup = now;
+  try {
+    var blob = new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var dt = new Date();
+    a.href = url;
+    a.download = 'stones-backup-'+dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+'.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+  } catch(e){}
+}
+
+function exportData(){
+  _lastBackup = 0;
+  triggerBackup(loadData());
+}
+
+function importData(file){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var d = JSON.parse(e.target.result);
+      if(d.baseline !== undefined && d.days !== undefined){
+        localStorage.setItem('stones_data', JSON.stringify(d));
+        alert('Imported. Refreshing...');
+        location.reload();
+      } else { alert('Invalid file'); }
+    } catch(err){ alert('Could not read: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function todayKey(){
+  var d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// === UI ===
+function saveBaseline(){
+  var d = loadData();
+  d.baseline = {
+    stoneSize: parseFloat(document.getElementById('stoneSize').value)||null,
+    urate: parseFloat(document.getElementById('urate').value)||null,
+    startDate: document.getElementById('startDate').value||null
+  };
+  saveData(d);
+  refresh();
+}
+
+function saveDay(){
+  var d = loadData();
+  var key = todayKey();
+  var phs = [
+    parseFloat(document.getElementById('ph1').value)||null,
+    parseFloat(document.getElementById('ph2').value)||null,
+    parseFloat(document.getElementById('ph3').value)||null,
+    parseFloat(document.getElementById('ph4').value)||null,
+    parseFloat(document.getElementById('ph5').value)||null
+  ];
+  var fluids = parseFloat(document.getElementById('fluids').value)||null;
+  d.days[key] = {ph: phs, fluids: fluids};
+  saveData(d);
+  refresh();
+}
+
+function clearToday(){
+  document.getElementById('ph1').value='';
+  document.getElementById('ph2').value='';
+  document.getElementById('ph3').value='';
+  document.getElementById('ph4').value='';
+  document.getElementById('ph5').value='';
+  document.getElementById('fluids').value='';
+}
+
+function refresh(){
+  var d = loadData();
+  // Baseline form
+  if(d.baseline){
+    document.getElementById('stoneSize').value = d.baseline.stoneSize||'';
+    document.getElementById('urate').value = d.baseline.urate||'';
+    document.getElementById('startDate').value = d.baseline.startDate||'';
+  }
+  // Today's day
+  var todayData = d.days[todayKey()];
+  if(todayData){
+    if(todayData.ph){
+      ['ph1','ph2','ph3','ph4','ph5'].forEach(function(id,i){
+        document.getElementById(id).value = todayData.ph[i] || '';
+      });
+    }
+    if(todayData.fluids) document.getElementById('fluids').value = todayData.fluids;
+  }
+  
+  // Compute today's factor & %
+  var phs = [
+    parseFloat(document.getElementById('ph1').value)||null,
+    parseFloat(document.getElementById('ph2').value)||null,
+    parseFloat(document.getElementById('ph3').value)||null,
+    parseFloat(document.getElementById('ph4').value)||null,
+    parseFloat(document.getElementById('ph5').value)||null
+  ];
+  var fluids = parseFloat(document.getElementById('fluids').value)||null;
+  var factor = dayFactor(phs);
+  var pctToday = factor!==null ? dailyPct(factor, fluids) : null;
+  
+  document.getElementById('todayFactor').textContent = factor!==null ? factor.toFixed(2) : '—';
+  document.getElementById('todayPct').textContent = pctToday!==null ? pctToday.toFixed(2)+'%' : '—';
+  
+  // Cumulative dissolution
+  var cumPct = 0;
+  var dayCount = 0;
+  Object.keys(d.days).forEach(function(k){
+    var dd = d.days[k];
+    var f = dayFactor(dd.ph);
+    if(f!==null){
+      cumPct += dailyPct(f, dd.fluids);
+      dayCount++;
+    }
+  });
+  document.getElementById('cumPct').textContent = cumPct.toFixed(1)+'%';
+  
+  // ETA: based on average daily rate so far
+  if(dayCount > 0 && cumPct > 0){
+    var avgDailyPct = cumPct / dayCount;
+    var remaining = 100 - cumPct;
+    var etaDays = remaining / avgDailyPct;
+    document.getElementById('etaDays').textContent = Math.round(etaDays) + ' days';
+    document.getElementById('bigStat').textContent = cumPct.toFixed(1)+'%';
+    document.getElementById('bigStatSub').textContent = 'dissolved in '+dayCount+' days · '+Math.round(etaDays)+' days remaining';
+  } else {
+    document.getElementById('etaDays').textContent = '—';
+    document.getElementById('bigStat').textContent = pctToday!==null ? pctToday.toFixed(2)+'%' : '—';
+    document.getElementById('bigStatSub').textContent = pctToday!==null ? 'predicted dissolution today' : 'enter today\'s pH readings';
+  }
+  
+  // Guidance
+  if(dayCount < 14){
+    document.getElementById('recCount').textContent = '5';
+    document.getElementById('guidanceText').textContent = 'Profile phase: take 5 readings/day for 14 days to learn your pattern. Day '+dayCount+' of 14.';
+  } else {
+    document.getElementById('recCount').textContent = '2';
+    document.getElementById('guidanceText').textContent = 'Maintenance: wake + bedtime readings sufficient. Add midday readings if pattern changes.';
+  }
+  
+  // History
+  var hist = '';
+  var keys = Object.keys(d.days).sort().reverse().slice(0,14);
+  keys.forEach(function(k){
+    var dd = d.days[k];
+    var f = dayFactor(dd.ph);
+    var pct = f!==null ? dailyPct(f, dd.fluids) : null;
+    var phStr = dd.ph.map(function(p){return p?p.toFixed(1):'—';}).join(' · ');
+    hist += '<div class="day-row"><div class="day-date">'+k.slice(5)+'</div><div class="day-ph">'+phStr+'</div><div class="day-pct">'+(pct!==null?pct.toFixed(2)+'%':'—')+'</div></div>';
+  });
+  document.getElementById('historyList').innerHTML = hist || '<div class="help">No data yet</div>';
+}
+
+// Live update on input
+['ph1','ph2','ph3','ph4','ph5','fluids'].forEach(function(id){
+  document.addEventListener('DOMContentLoaded', function(){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('input', refresh);
+  });
+});
+
+// Weekly auto-backup
+function weeklyCheck(){
+  var last = parseInt(localStorage.getItem('stones_last_weekly')||'0',10);
+  if(Date.now() - last >= 7*24*60*60*1000){
+    var d = loadData();
+    if(Object.keys(d.days).length>0){
+      _lastBackup = 0;
+      triggerBackup(d);
+      localStorage.setItem('stones_last_weekly', String(Date.now()));
+    }
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function(){
+  refresh();
+  weeklyCheck();
+});
+</script>
+
+</body>
+</html>
