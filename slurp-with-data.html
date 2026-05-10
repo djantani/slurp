@@ -460,26 +460,25 @@ var MS={
 // Each returns absolute INSTANTANEOUS RATE at fasting hour h.
 // Units differ per parameter — integrating gives accumulated work in real units.
 
-// === v11 ACTIVATION CURVES (indexed by METABOLIC fast hours) ===
-// Derived from v10 CODE values shifted -5h (the western-diet postprandial baseline
-// the v10 curves were calibrated against). Earlier draft followed v10 SUMMARY-DOC
-// values which were inflated vs the actual v10 code; this version is corrected.
+// === v11 ACTIVATION CURVES (CONSERVATIVE, indexed by METABOLIC fast hours) ===
+// Anchored to literature on RER, ketogenesis, mTOR/autophagy/GH dynamics.
+// Less optimistic than v10; designed to give realistic outcome predictions when
+// integrated and run through saturation outcome formulas.
 
 // FAT OXIDATION: returns g/h (RER-anchored, RMR 68 kcal/h)
-// pct anchors: 0=48, 1=49, 5=58, 9=68, 11=72, 13=75, 19=83 (plateau)
+// pct anchors: 0=44, 1=45, 5=53, 9=62, 11=66, 13=70, 19=80
 function actFatox(h){
   var pct;
-  if(h<1)        pct = 48 + 1*h;
-  else if(h<5)   pct = 49 + 9*(h-1)/4;
-  else if(h<9)   pct = 58 + 10*(h-5)/4;
-  else if(h<11)  pct = 68 + 4*(h-9)/2;
-  else if(h<13)  pct = 72 + 3*(h-11)/2;
-  else if(h<19)  pct = 75 + 8*(h-13)/6;
-  else           pct = 83;
+  if(h<1)        pct = 44 + 1*h;
+  else if(h<5)   pct = 45 + 8*(h-1)/4;
+  else if(h<9)   pct = 53 + 9*(h-5)/4;
+  else if(h<11)  pct = 62 + 4*(h-9)/2;
+  else if(h<13)  pct = 66 + 4*(h-11)/2;
+  else if(h<19)  pct = 70 + 10*(h-13)/6;
+  else           pct = 80;
   return 68 * (pct/100) / 9.0;
 }
-// KETONES: BHB mmol/L (instantaneous)
-// anchors: 0=0.13, 3=0.15, 7=0.25, 9=0.35, 11=0.50, 13=0.70, 15=0.90, 19=1.20
+// KETONES: BHB mmol/L (instantaneous) — unchanged from corrected v11
 function actKetones(h){
   if(h<3)   return 0.13 + 0.02*h/3;
   if(h<7)   return 0.15 + 0.10*(h-3)/4;
@@ -490,8 +489,7 @@ function actKetones(h){
   if(h<19)  return 0.90 + 0.30*(h-15)/4;
   return 1.20;
 }
-// mTOR: % suppression
-// anchors: 0=4, 3=15, 7=30, 11=45, 13=52.5, 15=60, 19=82 (plateau)
+// mTOR: % suppression — unchanged from corrected v11
 function actMTOR(h){
   if(h<3)   return 3.75 + 11.25*h/3;
   if(h<7)   return 15 + 15*(h-3)/4;
@@ -500,26 +498,52 @@ function actMTOR(h){
   if(h<19)  return 60 + 22*(h-15)/4;
   return 82;
 }
-// AUTOPHAGY: % activation (matches v10 code shifted -5h, unchanged from prior v11)
-// anchors: 7=0, 9=5, 11=17, 13=35, 15=52, 19=75
+// AUTOPHAGY: % activation — INDEXED BY CLOCK HOURS (research literature anchor)
+// Anchors from v10 (clock-time, dirty-diet-baseline studies):
+// 12=0, 14=5, 16=17, 18=35, 20=52, 24=75
+// Clean-diet days get a +2h bonus added to clock hours before reading curve
+// (compensates for lower carb load → faster glycogen depletion, per BHB/AMPK research).
 function actAutophagy(h){
-  if(h<7)   return 0;
-  if(h<9)   return 5*(h-7)/2;
-  if(h<11)  return 5 + 12*(h-9)/2;
-  if(h<13)  return 17 + 18*(h-11)/2;
-  if(h<15)  return 35 + 17*(h-13)/2;
-  if(h<19)  return 52 + 23*(h-15)/4;
+  if(h<12)  return 0;
+  if(h<14)  return 5*(h-12)/2;
+  if(h<16)  return 5 + 12*(h-14)/2;
+  if(h<18)  return 17 + 18*(h-16)/2;
+  if(h<20)  return 35 + 17*(h-18)/2;
+  if(h<24)  return 52 + 23*(h-20)/4;
   return 75;
 }
-// GH: % above baseline pulse intensity
-// anchors: 5=0, 9=12, 13=35, 17=65, 23=90 (plateau)
+// GH: % above baseline — INDEXED BY CLOCK HOURS
+// Anchors from v10: 10=0, 14=12, 18=35, 22=65, 28=90
+// Clean-diet bonus +2h same as autophagy (low insulin + mild ketosis enhances GH per Ho 1988 / fasting GH research).
 function actGH(h){
-  if(h<5)   return 0;
-  if(h<9)   return 12*(h-5)/4;
-  if(h<13)  return 12 + 23*(h-9)/4;
-  if(h<17)  return 35 + 30*(h-13)/4;
-  if(h<23)  return 65 + 25*(h-17)/6;
+  if(h<10)  return 0;
+  if(h<14)  return 12*(h-10)/4;
+  if(h<18)  return 12 + 23*(h-14)/4;
+  if(h<22)  return 35 + 30*(h-18)/4;
+  if(h<28)  return 65 + 25*(h-22)/6;
   return 90;
+}
+
+// Clean-diet bonus for autophagy/GH: clean Mediterranean fasts effectively reach
+// activation milestones earlier than dirty Western fasts (Bagherniya 2018, BHB→AMPK pathway).
+// Bonus depends on meal type: Light Med +2h, Normal Med +1h, Large Med 0, Industrial -1h, Heavy industrial -2h.
+function getCleanDietBonus(mealOffset){
+  if(typeof mealOffset !== 'number') return 2;  // default Light Med = +2h
+  return Math.max(-2, 4 - mealOffset);
+}
+
+// Simple clock-based integration (used for autophagy/GH only)
+function integrateClockBased(fn, clockHrsWithBonus){
+  if(clockHrsWithBonus <= 0) return 0;
+  var steps = Math.max(2, Math.floor(clockHrsWithBonus * 20));
+  var total = 0, prev = fn(0);
+  for(var i=1; i<=steps; i++){
+    var h = i * clockHrsWithBonus / steps;
+    var v = fn(h);
+    total += (prev+v)/2 * (clockHrsWithBonus/steps);
+    prev = v;
+  }
+  return total;
 }
 
 var PROCESSES=[
@@ -708,16 +732,21 @@ var POSTPRANDIAL_BASELINE = {
   gh: 0                      // % above baseline
 };
 
-// Per-parameter metabolic-time integration with postprandial baseline period
+// Per-parameter integration. Routes autophagy/GH through clock-based logic
+// (research uses clock hours), all others through metabolic-time logic.
 function integrateActivationMetabolic(paramKey, fn, fastHours, mealOffset){
   if(fastHours<=0) return 0;
-  if(typeof mealOffset !== 'number') mealOffset = 2;  // default Light Med
+  if(typeof mealOffset !== 'number') mealOffset = 2;
+  // Autophagy and GH: clock-time curves with clean-diet bonus
+  if(paramKey === 'autophagy' || paramKey === 'gh'){
+    var bonus = getCleanDietBonus(mealOffset);
+    return integrateClockBased(fn, fastHours + bonus);
+  }
+  // Fat ox / ketones / mTOR: metabolic-time logic (unchanged)
   var actualOffset = Math.min(mealOffset, fastHours);
   var metabolicHrs = fastHours - actualOffset;
-  // Postprandial baseline contribution
   var baselineVal = POSTPRANDIAL_BASELINE[paramKey] || 0;
   var postprandialContrib = baselineVal * actualOffset;
-  // Metabolic period: integrate fn from 0 to metabolicHrs
   if(metabolicHrs <= 0) return postprandialContrib;
   var steps = Math.max(2, Math.floor(metabolicHrs * 20));
   var total = 0;
@@ -737,63 +766,100 @@ function integrateActivation(fn, fastHours, paramKey, mealOffset){
   return integrateActivationMetabolic(paramKey, fn, fastHours, mealOffset);
 }
 
-// === MONTHLY TARGETS (dirty 16:8 reference for measurable params only) ===
-// fatox/ketones/mtor track against monthly targets in the Progress panel.
-// autophagy/gh do NOT have monthly targets — they are tracked via Longevity Bands only
-// (Bronze 50-150, Silver 150-300, Gold 300+ h/yr — 30-day rolling rate).
+// === MONTHLY TARGETS (linear pace toward 12-month endpoint) ===
+// Computed as endpoint_cumulative / 12 months. User pace must hit these monthly
+// to stay on track. Autophagy/gh are bands-only and not included here.
 var MONTHLY_TARGETS={
-  fatox:721,        // dirty 16:8 monthly net
-  ketones:66,       // dirty 16:8 monthly net
-  mtor:6156         // dirty 16:8 monthly net
+  fatox:1670,       // 12-mo target 20,038g / 12 months
+  ketones:100,      // 12-mo 1200 / 12
+  mtor:9260         // 12-mo 111,128 / 12
 };
 
-// === OBJECTIVES v11 ===
-// Objective gating uses fatox/ketones/mtor only. autophagy/gh are bands-only.
+// === ENDPOINT TARGETS (12 months) ===
+// Single endpoint instead of multi-stage objectives. Red line in milestone card
+// shows linear pace required to hit endpoint by month 12.
+// Targets are personal goals based on starting state + literature feasibility:
+//   Start: 82.5 kg, 97 cm, TG 250, HOMA est. 2.5
+//   12-mo: 75 kg (-7.5), 88 cm (-9), TG 120 (-52%), HOMA 1.25 (-50%)
+var ENDPOINT_TARGET = {
+  days: 360,
+  weight_loss_kg: 7.5,    // 82.5 → 75
+  waist_loss_cm: 9.0,     // 97 → 88
+  tg_pct: 52,             // 250 → 120
+  homa_pct: 50,           // 2.5 → 1.25
+  igf1_pct: 16            // typical TRE+caloric moderation 12-mo
+};
+// Saturation outcome equations: outcome = MAX × (1 − exp(−input / SCALE))
+// SCALE values calibrated so user's daily-fasting pace (Light Med 13.87h) reaches
+// ~95% of MAX by month 12 (asymptotic: never quite 100%, last 5% slow = realistic plateau).
+var OUTCOME_SCALE = {
+  weight: 6700,    // fatox_g; user pace at 360d = ~20,000g → 95% of 7.5 = 7.1 kg
+  waist:  6700,    // fatox_g
+  tg:     6700,    // fatox_g (with omega-3 already accounted via lifestyle)
+  homa:   64500    // mtor_pct_h + 10×autophagy_pct_h (recalibrated for clock-time autophagy)
+};
+function predictWeightLoss(fatox_g){
+  return ENDPOINT_TARGET.weight_loss_kg * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.weight));
+}
+function predictWaistLoss(fatox_g){
+  return ENDPOINT_TARGET.waist_loss_cm * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.waist));
+}
+function predictTGReduction(fatox_g){
+  return ENDPOINT_TARGET.tg_pct * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.tg));
+}
+function predictHOMAReduction(mtor_h, autophagy_h){
+  var input = mtor_h + 10 * autophagy_h;
+  return ENDPOINT_TARGET.homa_pct * (1 - Math.exp(-input / OUTCOME_SCALE.homa));
+}
+
+// === LEGACY MILESTONES (kept for backward compat with code paths still using them) ===
+// Each "milestone" represents a checkpoint on linear pace toward 12-month endpoint.
+// Saturation in outcome formulas creates the natural plateau (no plateau factor here).
 var MILESTONES=[
   {
-    n:1, label:'Objective 1',
-    targets:{fatox:2162, ketones:198, mtor:18468},
-    outcomes:{kg:1.6, cm:3.0, tg:25, homa:15},
-    desc:'3 months. Predicted: −1.6 kg fat, −3.0 cm waist, TG −25%, HOMA-IR −15%.'
+    n:1, label:'3 months', days:90,
+    // Linear pace: 90/360 of endpoint cumulative
+    targets:{fatox:5009, ketones:301, mtor:27782},
+    outcomes:{kg:3.0, cm:3.6, tg:21, homa:25},
+    desc:'3 months. On linear pace toward 12-month endpoint: -7.5 kg / -9 cm / TG -52% / HOMA -50%.'
   },
   {
-    n:2, label:'Objective 2',
-    targets:{fatox:3243, ketones:297, mtor:27702},
-    outcomes:{kg:2.4, cm:4.5, tg:35, homa:22},
-    desc:'6 months. Predicted: −2.4 kg fat, −4.5 cm waist, TG −35%, HOMA-IR −22%.'
+    n:2, label:'6 months', days:180,
+    targets:{fatox:10019, ketones:601, mtor:55564},
+    outcomes:{kg:5.0, cm:6.1, tg:35, homa:39},
+    desc:'6 months. Outcomes saturating: most reductions land between months 6-9.'
   },
   {
-    n:3, label:'Objective 3',
-    targets:{fatox:4595, ketones:416, mtor:38783},
-    outcomes:{kg:3.4, cm:6.5, tg:42, homa:32},
-    desc:'12 months. Predicted: −3.4 kg fat, −6.5 cm waist, TG −42%, HOMA-IR −32%.'
+    n:3, label:'12 months', days:360,
+    targets:{fatox:20038, ketones:1202, mtor:111128},
+    outcomes:{kg:7.1, cm:8.5, tg:49, homa:48},
+    desc:'12 months endpoint. Target: 75 kg / 88 cm / TG 120 / HOMA 1.25. After this: maintenance.'
   }
 ];
 
-// === LONGEVITY BANDS v10 (annual targets, autophagy & GH only) ===
-// Cumulative full-hours per year (1 full hour = 100 %·h).
-// Anchored to literature: rodent autophagy thresholds, human GH pulse studies.
-// Annual = days × per-day rate; pro-rate for 3/6 month checkpoints.
+// === LONGEVITY BANDS (research-anchored, clock-time activation) ===
+// h/yr thresholds calibrated against literature on autophagy and GH outcomes.
+// Same thresholds apply to both autophagy and GH.
 var LONGEVITY_BANDS={
   autophagy:[
-    {name:'Baseline',  min:0,    max:50,   color:'#ffffff',
-     desc:'Standard living, no fasting effect on cellular cleanup.'},
-    {name:'Bronze',    min:50,   max:150,  color:'#a16207',
-     desc:'Detectable cellular cleanup. Some mitochondrial turnover. Subtle but real.'},
-    {name:'Silver',    min:150,  max:300,  color:'#64748b',
-     desc:'Longevity-relevant zone. Rodent lifespan studies show effects here.'},
+    {name:'Baseline',  min:0,    max:30,   color:'#ffffff',
+     desc:'Below biomarker threshold. No measurable cellular cleanup benefit.'},
+    {name:'Bronze',    min:30,   max:100,  color:'#a16207',
+     desc:'Insulin sensitivity gains, modest visceral fat loss, biomarkers improving.'},
+    {name:'Silver',    min:100,  max:300,  color:'#64748b',
+     desc:'IGF-1 reduction (prostate-cancer relevant), senescent cell clearance, neuroprotection.'},
     {name:'Gold',      min:300,  max:9999, color:'#eab308',
-     desc:'Optimal autophagy load. Strong cellular maintenance.'}
+     desc:'Deep cellular renewal, epigenetic age signals, FMD-territory benefits.'}
   ],
   gh:[
-    {name:'Baseline',  min:0,    max:50,   color:'#ffffff',
-     desc:'Standard living, no fasting effect on GH pulses.'},
-    {name:'Bronze',    min:50,   max:150,  color:'#a16207',
-     desc:'Some muscle preservation during fat loss.'},
-    {name:'Silver',    min:150,  max:300,  color:'#64748b',
-     desc:'Strong muscle/recovery support. Sarcopenia mitigation begins.'},
+    {name:'Baseline',  min:0,    max:30,   color:'#ffffff',
+     desc:'No measurable GH preservation effect.'},
+    {name:'Bronze',    min:30,   max:100,  color:'#a16207',
+     desc:'Maintains GH pulse amplitude into older age.'},
+    {name:'Silver',    min:100,  max:300,  color:'#64748b',
+     desc:'Meaningful muscle preservation, body composition support, sarcopenia mitigation.'},
     {name:'Gold',      min:300,  max:9999, color:'#eab308',
-     desc:'Optimal sarcopenia protection (especially 50+).'}
+     desc:'Strong IGF-1 modulation, intervention-trial-territory body composition effects.'}
   ]
 };
 // Pro-rated band thresholds for 3 and 6 month checkpoints
@@ -902,6 +968,19 @@ function renderMilestoneCard(){
   
   if(!history.length){
     card.innerHTML='<div class="ms-empty">Start your first fast to begin tracking your 12-month progress.</div>';
+    return;
+  }
+  
+  // === MAINTENANCE MODE check (after 12 months) ===
+  var protocolStart = getProtocolStart();
+  var calendarDays = (Date.now() - protocolStart) / 86400000;
+  if(calendarDays >= ENDPOINT_TARGET.days){
+    card.innerHTML='<div class="ms-card"><div class="ms-title">🎯 Maintenance phase</div>' +
+      '<div class="ms-sub">Day '+Math.floor(calendarDays)+' · 12-month endpoint reached.</div>' +
+      '<div class="ms-info" style="margin-top:10px;font-size:0.78rem;line-height:1.4;color:var(--text-dim);">' +
+      'Hold within: weight ±2 kg of target, waist ±1 cm, TG &lt;150, HOMA-IR &lt;2. ' +
+      'Continue 12-14h fasts most days, occasional exceptions OK. ' +
+      'Focus shifts to muscle preservation and steady labs.</div></div>';
     return;
   }
   
@@ -1090,7 +1169,7 @@ function renderMilestoneCard(){
     
     // Compact longevity band legend
     html+='<div style="margin-top:8px;font-size:0.72rem;color:var(--text2);line-height:1.4;">';
-    html+='Autophagy/GH bands: <span style="color:#fff;">Baseline 0–50</span> · <span style="color:#a16207;">Bronze 50–150</span> · <span style="color:#64748b;">Silver 150–300</span> · <span style="color:#eab308;">Gold 300+</span> h/yr';
+    html+='Autophagy/GH bands: <span style="color:#fff;">Baseline 0–30</span> · <span style="color:#a16207;">Bronze 30–100</span> · <span style="color:#64748b;">Silver 100–300</span> · <span style="color:#eab308;">Gold 300+</span> h/yr';
     html+='</div>';
   } else if(lastObj && lastObj.n===3){
     html+='<div class="ms-target-header">🎉 All 3 Objectives reached</div>';
@@ -1477,7 +1556,7 @@ function renderProcessPanel(history,exceptions){
     var setbackTxt=setbackV>0?' (-'+Math.round(setbackV)+')':'';
     html+='<div class="proc-row"><span class="stat-icon">'+p.icon+'</span><span class="proc-name">'+p.name+'</span><div class="proc-bar-wrap"><div class="proc-bar" style="width:'+pctOfTarget+'%"></div></div><span class="proc-val">'+Math.round(netV)+setbackTxt+'</span></div>';
   });
-  html+='<div class="proc-info">Bar = % of monthly target (dirty 16:8 reference). Autophagy/GH shown via bands on milestone card.</div></div>';
+  html+='<div class="proc-info">Bar = % of monthly target (linear pace to 12-month endpoint). Autophagy/GH shown via bands on milestone card.</div></div>';
   
   // Quarterly P&L view
   html+='<div class="proc-panel" style="margin-top:8px"><div class="stats-title">Last 90 days · plan vs actual</div>';
@@ -1588,9 +1667,9 @@ var MEASUREMENT_FIELDS=[
   {key:'hba1c',label:'HbA1c',unit:'%',step:'0.1'}
 ];
 
-// Baseline values from your Feb 2026 bloods
+// Baseline values from start of protocol (March 2026)
 var MEASUREMENT_BASELINE={
-  weight:82,waist:97,tg:250,hdl:47,ldl:120,glucose:87,insulin:null,hba1c:null
+  weight:82.5,waist:97,tg:250,hdl:47,ldl:120,glucose:87,insulin:null,hba1c:null
 };
 
 var MEASUREMENT_TIMEPOINTS=[
