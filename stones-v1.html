@@ -26,6 +26,19 @@ button.danger{background:var(--bad);color:#fff;}
 .big-stat{font-size:2.4rem;font-weight:700;text-align:center;line-height:1;margin:6px 0;}
 .stat-sub{text-align:center;color:var(--text2);font-size:0.85rem;margin-bottom:8px;}
 .ph-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0;}
+.ph-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.ph-row:last-child{border-bottom:none;}
+.ph-row-label{flex:1;font-size:0.9rem;color:var(--text);}
+.ph-row-value{flex:0 0 50px;text-align:center;font-size:1.2rem;font-weight:700;color:var(--accent);}
+.ph-pick-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:7px 14px;border-radius:8px;font-size:0.85rem;cursor:pointer;font-family:inherit;}
+.ph-pick-btn:active{background:var(--accent);color:#0a0a0a;}
+.ph-opt{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:12px 4px;border-radius:8px;font-size:0.95rem;font-weight:600;text-align:center;cursor:pointer;}
+.ph-opt:active{background:var(--accent);color:#0a0a0a;}
+.ph-opt.danger{border-color:#ef4444;color:#fca5a5;}
+.ph-opt.warn{border-color:#fb923c;color:#fdba74;}
+.ph-opt.ok{border-color:#facc15;color:#fde047;}
+.ph-opt.good{border-color:#4ade80;color:#86efac;}
+.ph-opt.gold{border-color:#eab308;color:#eab308;}
 .ph-cell{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:8px 4px;text-align:center;}
 .ph-cell-time{font-size:0.7rem;color:var(--text2);margin-bottom:4px;}
 .ph-cell input{width:100%;text-align:center;padding:4px 2px;font-size:1.1rem;font-weight:600;background:transparent;border:none;color:var(--text);}
@@ -53,25 +66,94 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <!-- BASELINE -->
 <div class="card">
   <div class="card-title">Baseline</div>
-  <div class="row"><label>Stone size (mm)</label><input type="number" id="stoneSize" step="0.5" placeholder="7"></div>
-  <div class="row"><label>Serum urate (mg/dL)</label><input type="number" id="urate" step="0.1" placeholder="6.4"></div>
-  <div class="row"><label>Started protocol</label><input type="date" id="startDate"></div>
-  <button onclick="saveBaseline()">Save baseline</button>
+  <div class="ph-row">
+    <div class="ph-row-label">Stone size (mm)</div>
+    <div class="ph-row-value" id="stoneSizeVal">—</div>
+    <button class="ph-pick-btn" onclick="openStoneSizePicker()">Pick</button>
+  </div>
+  <div class="ph-row">
+    <div class="ph-row-label">Serum urate (mg/dL)</div>
+    <div class="ph-row-value" id="urateVal">—</div>
+    <button class="ph-pick-btn" onclick="openUratePicker()">Pick</button>
+  </div>
+  <div class="ph-row">
+    <div class="ph-row-label">Started protocol</div>
+    <div class="ph-row-value" id="startDateVal" style="flex:0 0 100px;font-size:0.85rem;">—</div>
+    <input type="date" id="startDate" onchange="saveBaselineDate()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:8px;font-family:inherit;">
+  </div>
+</div>
+
+<!-- STONE SIZE PICKER MODAL -->
+<div id="stoneSizePickerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-top-left-radius:20px;border-top-right-radius:20px;width:100%;max-width:520px;padding:18px 14px 24px;">
+    <div style="text-align:center;font-size:0.85rem;color:var(--text2);margin-bottom:14px;">Stone size (mm)</div>
+    <div id="stoneSizePickerGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;"></div>
+    <button class="ghost" style="width:100%;margin-top:14px;" onclick="closeStoneSizePicker()">Cancel</button>
+  </div>
+</div>
+
+<!-- URATE PICKER MODAL -->
+<div id="uratePickerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-top-left-radius:20px;border-top-right-radius:20px;width:100%;max-width:520px;padding:18px 14px 24px;">
+    <div style="text-align:center;font-size:0.85rem;color:var(--text2);margin-bottom:14px;">Serum urate (mg/dL)</div>
+    <div id="uratePickerGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;"></div>
+    <button class="ghost" style="width:100%;margin-top:14px;" onclick="closeUratePicker()">Cancel</button>
+  </div>
 </div>
 
 <!-- TODAY -->
 <div class="card">
   <div class="card-title">Today's pH readings</div>
-  <div class="ph-grid">
-    <div class="ph-cell"><div class="ph-cell-time">Wake</div><input type="number" step="0.1" id="ph1" placeholder="—" inputmode="decimal"></div>
-    <div class="ph-cell"><div class="ph-cell-time">Mid AM</div><input type="number" step="0.1" id="ph2" placeholder="—" inputmode="decimal"></div>
-    <div class="ph-cell"><div class="ph-cell-time">Pre-lunch</div><input type="number" step="0.1" id="ph3" placeholder="—" inputmode="decimal"></div>
-    <div class="ph-cell"><div class="ph-cell-time">Evening</div><input type="number" step="0.1" id="ph4" placeholder="—" inputmode="decimal"></div>
-    <div class="ph-cell"><div class="ph-cell-time">Bedtime</div><input type="number" step="0.1" id="ph5" placeholder="—" inputmode="decimal"></div>
+  <div id="phReadings">
+    <div class="ph-row" data-slot="0">
+      <div class="ph-row-label">Wake</div>
+      <div class="ph-row-value" id="phVal0">—</div>
+      <button class="ph-pick-btn" onclick="openPhPicker(0)">Pick pH</button>
+    </div>
+    <div class="ph-row" data-slot="1">
+      <div class="ph-row-label">Mid AM</div>
+      <div class="ph-row-value" id="phVal1">—</div>
+      <button class="ph-pick-btn" onclick="openPhPicker(1)">Pick pH</button>
+    </div>
+    <div class="ph-row" data-slot="2">
+      <div class="ph-row-label">Pre-lunch</div>
+      <div class="ph-row-value" id="phVal2">—</div>
+      <button class="ph-pick-btn" onclick="openPhPicker(2)">Pick pH</button>
+    </div>
+    <div class="ph-row" data-slot="3">
+      <div class="ph-row-label">Evening (post-Lithos)</div>
+      <div class="ph-row-value" id="phVal3">—</div>
+      <button class="ph-pick-btn" onclick="openPhPicker(3)">Pick pH</button>
+    </div>
+    <div class="ph-row" data-slot="4">
+      <div class="ph-row-label">Bedtime</div>
+      <div class="ph-row-value" id="phVal4">—</div>
+      <button class="ph-pick-btn" onclick="openPhPicker(4)">Pick pH</button>
+    </div>
   </div>
-  <div class="row"><label>Fluid intake (L)</label><input type="number" step="0.1" id="fluids" placeholder="2.5" inputmode="decimal"></div>
-  <button onclick="saveDay()">Save today</button>
-  <button class="ghost" onclick="clearToday()">Clear</button>
+  <div class="row" style="margin-top:12px;">
+    <label>Fluids today</label>
+    <button class="ph-pick-btn" onclick="openFluidsPicker()" id="fluidsBtn" style="flex:1;">— L</button>
+  </div>
+  <button class="ghost" onclick="clearToday()" style="margin-top:10px;">Clear today</button>
+</div>
+
+<!-- pH PICKER MODAL -->
+<div id="phPickerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-top-left-radius:20px;border-top-right-radius:20px;width:100%;max-width:520px;padding:18px 14px 24px;">
+    <div style="text-align:center;font-size:0.85rem;color:var(--text2);margin-bottom:14px;" id="phPickerTitle">Select pH</div>
+    <div id="phPickerGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;"></div>
+    <button class="ghost" style="width:100%;margin-top:14px;" onclick="closePhPicker()">Cancel</button>
+  </div>
+</div>
+
+<!-- FLUIDS PICKER MODAL -->
+<div id="fluidsPickerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-top-left-radius:20px;border-top-right-radius:20px;width:100%;max-width:520px;padding:18px 14px 24px;">
+    <div style="text-align:center;font-size:0.85rem;color:var(--text2);margin-bottom:14px;">Fluids today (L)</div>
+    <div id="fluidsPickerGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
+    <button class="ghost" style="width:100%;margin-top:14px;" onclick="closeFluidsPicker()">Cancel</button>
+  </div>
 </div>
 
 <!-- DASHBOARD -->
@@ -144,28 +226,57 @@ function phFactor(ph){
 var DAILY_PCT_AT_FACTOR_1 = 1.0; // means: factor 1.0 (pH 7.0) gives 1.0%/day
 
 // === Time-weighted average pH factor ===
-// Reading times approx: wake 7am, midAM 11am, prelunch 1pm, evening 7pm, bedtime 11pm
-// Time slices each reading represents:
-//  wake (overnight + early): 7h (midnight-7am roughly)
-//  midAM: 4h (7am-11am)
-//  prelunch: 2h (11am-1pm)
-//  evening: 6h (1pm-7pm)
-//  bedtime: 5h (7pm-midnight, gradient down)
-var TIME_WEIGHTS = [7, 4, 2, 6, 5]; // sum = 24
+// Readings are at fixed clock times: wake 7am, midAM 11am, prelunch 1pm, evening 9pm (post-Lithos), bedtime 11pm.
+// Interpolate linearly between consecutive readings, then integrate the non-linear pH→factor curve
+// in 15-min steps. Handles overnight transition (bedtime → wake) as a smooth decay.
+var READING_TIMES = [7, 11, 13, 21, 23]; // hours of the day for each slot
+// Note: evening slot now at 9pm (post-Lithos peak), bedtime at 11pm
 
 function dayFactor(phReadings){
-  // phReadings = [wake, midAM, prelunch, evening, bedtime] - any can be null
-  var totalWeight = 0;
-  var weightedSum = 0;
+  // Build a list of (time, pH) anchors from valid readings only
+  var anchors = [];
   for(var i=0; i<5; i++){
     if(phReadings[i] !== null && !isNaN(phReadings[i])){
-      var f = phFactor(phReadings[i]);
-      weightedSum += f * TIME_WEIGHTS[i];
-      totalWeight += TIME_WEIGHTS[i];
+      anchors.push({t: READING_TIMES[i], ph: phReadings[i]});
     }
   }
-  if(totalWeight===0) return null;
-  return weightedSum / totalWeight;
+  if(anchors.length === 0) return null;
+  
+  // To handle the overnight loop, duplicate first anchor +24h
+  // so we can interpolate across midnight from bedtime to next wake
+  var firstAnchor = anchors[0];
+  var loopedAnchors = anchors.slice();
+  loopedAnchors.push({t: firstAnchor.t + 24, ph: firstAnchor.ph});
+  
+  // Integrate factor over 24h in 15-min steps
+  var totalFactor = 0;
+  var steps = 96; // 24h × 4 steps/h
+  var stepSize = 24 / steps;
+  
+  // Start integration at the time of the first anchor; wrap around
+  var startTime = firstAnchor.t;
+  
+  for(var s=0; s<steps; s++){
+    var t = startTime + s * stepSize;
+    // Find which two anchors this time falls between
+    var pH = interpolatePh(t, loopedAnchors);
+    totalFactor += phFactor(pH);
+  }
+  
+  return totalFactor / steps;
+}
+
+function interpolatePh(t, anchors){
+  // anchors are sorted in time
+  for(var i=0; i<anchors.length-1; i++){
+    if(t >= anchors[i].t && t <= anchors[i+1].t){
+      var span = anchors[i+1].t - anchors[i].t;
+      if(span <= 0) return anchors[i].ph;
+      var frac = (t - anchors[i].t) / span;
+      return anchors[i].ph + frac * (anchors[i+1].ph - anchors[i].ph);
+    }
+  }
+  return anchors[0].ph;
 }
 
 function dailyPct(factor, fluids){
@@ -181,6 +292,148 @@ function dailyPct(factor, fluids){
     else fluidMult = 1.25;
   }
   return factor * DAILY_PCT_AT_FACTOR_1 * fluidMult;
+}
+
+// === pH Picker ===
+var _currentSlot = -1;
+
+function openPhPicker(slot){
+  _currentSlot = slot;
+  var grid = document.getElementById('phPickerGrid');
+  var html = '';
+  // pH values 5.0 to 7.0 in 0.1 increments
+  for(var v=50; v<=70; v++){
+    var ph = v/10;
+    var phStr = ph.toFixed(1);
+    var cls = 'ph-opt';
+    if(ph < 5.5) cls += ' danger';
+    else if(ph < 6.0) cls += ' warn';
+    else if(ph < 6.5) cls += ' ok';
+    else cls += ' good';
+    html += '<div class="'+cls+'" onclick="pickPh('+ph+')">'+phStr+'</div>';
+  }
+  grid.innerHTML = html;
+  var titles = ['Wake (overnight trough)','Mid AM (post-Magnesio peak)','Pre-lunch','Evening (post-Lithos peak)','Bedtime'];
+  document.getElementById('phPickerTitle').textContent = titles[slot];
+  document.getElementById('phPickerModal').style.display = 'flex';
+}
+
+function pickPh(val){
+  var d = loadData();
+  var key = todayKey();
+  if(!d.days[key]) d.days[key] = {ph:[null,null,null,null,null], fluids:null};
+  d.days[key].ph[_currentSlot] = val;
+  localStorage.setItem('stones_data', JSON.stringify(d));
+  localStorage.setItem('stones_data_backup', JSON.stringify(d));
+  closePhPicker();
+  refresh();
+}
+
+function closePhPicker(){
+  document.getElementById('phPickerModal').style.display = 'none';
+}
+
+function openFluidsPicker(){
+  var grid = document.getElementById('fluidsPickerGrid');
+  var html = '';
+  // 0.5 to 5L in 0.25 increments
+  for(var v=2; v<=20; v++){
+    var L = v*0.25;
+    html += '<div class="ph-opt" onclick="pickFluids('+L+')">'+L+' L</div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('fluidsPickerModal').style.display = 'flex';
+}
+
+function pickFluids(val){
+  var d = loadData();
+  var key = todayKey();
+  if(!d.days[key]) d.days[key] = {ph:[null,null,null,null,null], fluids:null};
+  d.days[key].fluids = val;
+  localStorage.setItem('stones_data', JSON.stringify(d));
+  localStorage.setItem('stones_data_backup', JSON.stringify(d));
+  closeFluidsPicker();
+  refresh();
+}
+
+function closeFluidsPicker(){
+  document.getElementById('fluidsPickerModal').style.display = 'none';
+}
+
+// === Baseline pickers ===
+function openStoneSizePicker(){
+  var grid = document.getElementById('stoneSizePickerGrid');
+  var html = '';
+  // 1 to 15 mm in 0.5 increments
+  for(var v=2; v<=30; v++){
+    var mm = v*0.5;
+    html += '<div class="ph-opt" onclick="pickStoneSize('+mm+')">'+mm+'</div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('stoneSizePickerModal').style.display = 'flex';
+}
+function pickStoneSize(val){
+  var d = loadData();
+  if(!d.baseline) d.baseline = {};
+  d.baseline.stoneSize = val;
+  saveData(d);
+  closeStoneSizePicker();
+  refresh();
+}
+function closeStoneSizePicker(){
+  document.getElementById('stoneSizePickerModal').style.display = 'none';
+}
+
+function openUratePicker(){
+  var grid = document.getElementById('uratePickerGrid');
+  var html = '';
+  // 3.0 to 10.0 mg/dL in 0.1 increments
+  for(var v=30; v<=100; v++){
+    var val = v/10;
+    var valStr = val.toFixed(1);
+    var cls = 'ph-opt';
+    if(val < 5.0) cls += ' good';
+    else if(val < 6.5) cls += ' ok';
+    else if(val < 8.0) cls += ' warn';
+    else cls += ' danger';
+    html += '<div class="'+cls+'" onclick="pickUrate('+val+')">'+valStr+'</div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('uratePickerModal').style.display = 'flex';
+}
+function pickUrate(val){
+  var d = loadData();
+  if(!d.baseline) d.baseline = {};
+  d.baseline.urate = val;
+  saveData(d);
+  closeUratePicker();
+  refresh();
+}
+function closeUratePicker(){
+  document.getElementById('uratePickerModal').style.display = 'none';
+}
+
+function saveBaselineDate(){
+  var d = loadData();
+  if(!d.baseline) d.baseline = {};
+  d.baseline.startDate = document.getElementById('startDate').value;
+  saveData(d);
+  refresh();
+}
+
+function clearToday(){
+  if(!confirm('Clear today\'s readings?')) return;
+  var d = loadData();
+  delete d.days[todayKey()];
+  localStorage.setItem('stones_data', JSON.stringify(d));
+  refresh();
+}
+
+function parseDec(v){
+  if(v===null||v===undefined||v==='') return null;
+  var s = String(v).replace(',','.').trim();
+  var n = parseFloat(s);
+  return isNaN(n) ? null : n;
 }
 
 // === Storage ===
@@ -237,80 +490,28 @@ function todayKey(){
 }
 
 // === UI ===
-function saveBaseline(){
-  var d = loadData();
-  d.baseline = {
-    stoneSize: parseFloat(document.getElementById('stoneSize').value)||null,
-    urate: parseFloat(document.getElementById('urate').value)||null,
-    startDate: document.getElementById('startDate').value||null
-  };
-  saveData(d);
-  refresh();
-}
-
-function saveDay(){
-  // explicit save also works, but each input auto-saves too
-  autoSaveDay();
-  refresh();
-}
-
-function autoSaveDay(){
-  var d = loadData();
-  var key = todayKey();
-  var phs = [
-    parseFloat(document.getElementById('ph1').value)||null,
-    parseFloat(document.getElementById('ph2').value)||null,
-    parseFloat(document.getElementById('ph3').value)||null,
-    parseFloat(document.getElementById('ph4').value)||null,
-    parseFloat(document.getElementById('ph5').value)||null
-  ];
-  var fluids = parseFloat(document.getElementById('fluids').value)||null;
-  // Only save if there's at least one value
-  if(phs.some(function(p){return p!==null;}) || fluids!==null){
-    d.days[key] = {ph: phs, fluids: fluids};
-    // Save without triggering backup download for each keystroke
-    localStorage.setItem('stones_data', JSON.stringify(d));
-    localStorage.setItem('stones_data_backup', JSON.stringify(d));
-  }
-}
-
-function clearToday(){
-  document.getElementById('ph1').value='';
-  document.getElementById('ph2').value='';
-  document.getElementById('ph3').value='';
-  document.getElementById('ph4').value='';
-  document.getElementById('ph5').value='';
-  document.getElementById('fluids').value='';
-}
-
 function refresh(){
   var d = loadData();
-  // Baseline form
+  // Baseline display from data
   if(d.baseline){
-    document.getElementById('stoneSize').value = d.baseline.stoneSize||'';
-    document.getElementById('urate').value = d.baseline.urate||'';
-    document.getElementById('startDate').value = d.baseline.startDate||'';
-  }
-  // Today's day
-  var todayData = d.days[todayKey()];
-  if(todayData){
-    if(todayData.ph){
-      ['ph1','ph2','ph3','ph4','ph5'].forEach(function(id,i){
-        document.getElementById(id).value = todayData.ph[i] || '';
-      });
+    document.getElementById('stoneSizeVal').textContent = d.baseline.stoneSize !== undefined && d.baseline.stoneSize !== null ? d.baseline.stoneSize + ' mm' : '—';
+    document.getElementById('urateVal').textContent = d.baseline.urate !== undefined && d.baseline.urate !== null ? d.baseline.urate : '—';
+    if(d.baseline.startDate){
+      document.getElementById('startDate').value = d.baseline.startDate;
+      document.getElementById('startDateVal').textContent = d.baseline.startDate;
     }
-    if(todayData.fluids) document.getElementById('fluids').value = todayData.fluids;
   }
+  // Today's day — read from saved data
+  var todayData = d.days[todayKey()] || {ph:[null,null,null,null,null], fluids:null};
+  var phs = todayData.ph || [null,null,null,null,null];
+  var fluids = todayData.fluids;
   
-  // Compute today's factor & %
-  var phs = [
-    parseFloat(document.getElementById('ph1').value)||null,
-    parseFloat(document.getElementById('ph2').value)||null,
-    parseFloat(document.getElementById('ph3').value)||null,
-    parseFloat(document.getElementById('ph4').value)||null,
-    parseFloat(document.getElementById('ph5').value)||null
-  ];
-  var fluids = parseFloat(document.getElementById('fluids').value)||null;
+  // Update display labels
+  for(var i=0; i<5; i++){
+    document.getElementById('phVal'+i).textContent = phs[i] !== null ? phs[i].toFixed(1) : '—';
+  }
+  document.getElementById('fluidsBtn').textContent = fluids !== null ? fluids + ' L' : '— L';
+  
   var factor = dayFactor(phs);
   var pctToday = factor!==null ? dailyPct(factor, fluids) : null;
   
@@ -341,7 +542,7 @@ function refresh(){
   } else {
     document.getElementById('etaDays').textContent = '—';
     document.getElementById('bigStat').textContent = pctToday!==null ? pctToday.toFixed(2)+'%' : '—';
-    document.getElementById('bigStatSub').textContent = pctToday!==null ? 'predicted dissolution today' : 'enter today\'s pH readings';
+    document.getElementById('bigStatSub').textContent = pctToday!==null ? 'predicted dissolution today' : 'tap "Pick pH" to add today\'s reading';
   }
   
   // Guidance
@@ -360,24 +561,13 @@ function refresh(){
     var dd = d.days[k];
     var f = dayFactor(dd.ph);
     var pct = f!==null ? dailyPct(f, dd.fluids) : null;
-    var phStr = dd.ph.map(function(p){return p?p.toFixed(1):'—';}).join(' · ');
+    var phStr = (dd.ph||[]).map(function(p){return p?p.toFixed(1):'—';}).join(' · ');
     hist += '<div class="day-row"><div class="day-date">'+k.slice(5)+'</div><div class="day-ph">'+phStr+'</div><div class="day-pct">'+(pct!==null?pct.toFixed(2)+'%':'—')+'</div></div>';
   });
   document.getElementById('historyList').innerHTML = hist || '<div class="help">No data yet</div>';
 }
 
-// Live update on input — auto-saves each entry
-['ph1','ph2','ph3','ph4','ph5','fluids'].forEach(function(id){
-  document.addEventListener('DOMContentLoaded', function(){
-    var el = document.getElementById(id);
-    if(el){
-      el.addEventListener('input', function(){
-        autoSaveDay();
-        refresh();
-      });
-    }
-  });
-});
+// no more input listeners — picker-driven now
 
 // Weekly auto-backup
 function weeklyCheck(){
