@@ -785,7 +785,8 @@ var ENDPOINT_TARGET = {
   waist_loss_cm: 9.0,     // 97 → 88
   tg_pct: 52,             // 250 → 120
   homa_pct: 50,           // 2.5 → 1.25
-  igf1_pct: 15            // research-backed for daily TRE+Mediterranean (8-15% range, conservative midpoint)
+  igf1_pct: 18,           // research-backed: TRE + weight loss + moderate protein + exercise = -15-20% range
+  ph_increase: 0.7        // morning baseline: 5.5 → 6.2 (kidney NH4+ recovery as IR resolves)
 };
 // Saturation outcome equations: outcome = MAX × (1 − exp(−input / SCALE))
 // SCALE values calibrated so user's daily-fasting pace (Light Med 13.87h) reaches
@@ -795,7 +796,8 @@ var OUTCOME_SCALE = {
   waist:  6700,    // fatox_g
   tg:     6700,    // fatox_g (with omega-3 already accounted via lifestyle)
   homa:   64500,   // mtor_pct_h + 10×autophagy_pct_h
-  igf1:   12400    // fatox_g — calibrated to 12% reduction at month 12 (research-backed conservative)
+  igf1:   7000,    // fatox_g — calibrated to ~17% reduction at endpoint (max 18%)
+  ph:     7000     // fatox_g — calibrated to morning pH +0.65 at endpoint (max +0.7)
 };
 function predictWeightLoss(fatox_g){
   // Back-loaded curve: slow early (water/glycogen mask real fat loss + slight muscle gain),
@@ -805,7 +807,6 @@ function predictWeightLoss(fatox_g){
 }
 function predictWaistLoss(fatox_g){
   // Waist drops faster than weight in early phase (visceral fat burns first per Cienfuegos/Gabel TRE data).
-  // Power-curve modification compresses early progress, then saturates.
   return ENDPOINT_TARGET.waist_loss_cm * Math.pow(1 - Math.exp(-fatox_g / 3500), 0.6);
 }
 function predictTGReduction(fatox_g){
@@ -818,6 +819,11 @@ function predictHOMAReduction(mtor_h, autophagy_h){
 function predictIGF1Reduction(fatox_g){
   return ENDPOINT_TARGET.igf1_pct * (1 - Math.exp(-fatox_g / OUTCOME_SCALE.igf1));
 }
+function predictPHIncrease(fatox_g){
+  // Morning baseline pH lags HOMA-IR by ~3 months (kidney NH4+ machinery needs to upregulate).
+  // Power-curve gives slow start, accelerating middle, plateau.
+  return ENDPOINT_TARGET.ph_increase * Math.pow(1 - Math.exp(-fatox_g / OUTCOME_SCALE.ph), 1.5);
+}
 
 // === MILESTONES (3/6/12 month checkpoints toward 12-month endpoint) ===
 // Outcomes derived from saturation curves at each checkpoint given linear pace.
@@ -825,20 +831,20 @@ var MILESTONES=[
   {
     n:1, label:'3-month plan', days:90,
     targets:{fatox:5009, ketones:301, mtor:27782},
-    outcomes:{kg:3.4, cm:7.6, tg:21, homa:25, igf1:5},
-    desc:'3 months · target outcomes: −3.4 kg / −7.6 cm waist / TG −21% / HOMA-IR −25% / IGF-1 −5%.'
+    outcomes:{kg:3.4, cm:7.6, tg:21, homa:25, igf1:9, ph:5.8},
+    desc:'3 months · target outcomes: −3.4 kg / −7.6 cm waist / TG −21% / HOMA-IR −25% / IGF-1 −9% / morning pH 5.8.'
   },
   {
     n:2, label:'6-month plan', days:180,
     targets:{fatox:10019, ketones:601, mtor:55564},
-    outcomes:{kg:6.0, cm:8.7, tg:35, homa:39, igf1:8},
-    desc:'6 months · target outcomes: −6.0 kg / −8.7 cm / TG −35% / HOMA-IR −39% / IGF-1 −8%.'
+    outcomes:{kg:6.0, cm:8.7, tg:35, homa:39, igf1:14, ph:6.0},
+    desc:'6 months · target outcomes: −6.0 kg / −8.7 cm / TG −35% / HOMA-IR −39% / IGF-1 −14% / morning pH 6.0.'
   },
   {
     n:3, label:'12-month plan', days:360,
     targets:{fatox:20038, ketones:1202, mtor:111128},
-    outcomes:{kg:7.3, cm:9.0, tg:49, homa:48, igf1:12},
-    desc:'12-month endpoint · target outcomes: 75 kg / 88 cm waist / TG 120 / HOMA-IR 1.25 / IGF-1 −12%. After this: maintenance phase.'
+    outcomes:{kg:7.3, cm:9.0, tg:49, homa:48, igf1:17, ph:6.1},
+    desc:'12-month endpoint · target outcomes: 75 kg / 88 cm waist / TG 120 / HOMA-IR 1.25 / IGF-1 −17% / morning pH 6.1. After this: maintenance phase.'
   }
 ];
 
@@ -1181,6 +1187,7 @@ function renderMilestoneCard(){
     html+='<tr><td style="padding:3px 0;">Triglycerides</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.tg+'%</td></tr>';
     html+='<tr><td style="padding:3px 0;">HOMA-IR</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.homa+'%</td></tr>';
     html+='<tr><td style="padding:3px 0;">IGF-1</td><td style="text-align:right;padding:3px 0;color:var(--accent);">−'+nextObj.outcomes.igf1+'%</td></tr>';
+    html+='<tr><td style="padding:3px 0;">Morning pH</td><td style="text-align:right;padding:3px 0;color:var(--accent);">'+nextObj.outcomes.ph.toFixed(1)+'</td></tr>';
     html+='</table></div>';
     
     // Compact longevity band legend
