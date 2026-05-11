@@ -249,6 +249,12 @@ function saveBaseline(){
 }
 
 function saveDay(){
+  // explicit save also works, but each input auto-saves too
+  autoSaveDay();
+  refresh();
+}
+
+function autoSaveDay(){
   var d = loadData();
   var key = todayKey();
   var phs = [
@@ -259,9 +265,13 @@ function saveDay(){
     parseFloat(document.getElementById('ph5').value)||null
   ];
   var fluids = parseFloat(document.getElementById('fluids').value)||null;
-  d.days[key] = {ph: phs, fluids: fluids};
-  saveData(d);
-  refresh();
+  // Only save if there's at least one value
+  if(phs.some(function(p){return p!==null;}) || fluids!==null){
+    d.days[key] = {ph: phs, fluids: fluids};
+    // Save without triggering backup download for each keystroke
+    localStorage.setItem('stones_data', JSON.stringify(d));
+    localStorage.setItem('stones_data_backup', JSON.stringify(d));
+  }
 }
 
 function clearToday(){
@@ -356,11 +366,16 @@ function refresh(){
   document.getElementById('historyList').innerHTML = hist || '<div class="help">No data yet</div>';
 }
 
-// Live update on input
+// Live update on input — auto-saves each entry
 ['ph1','ph2','ph3','ph4','ph5','fluids'].forEach(function(id){
   document.addEventListener('DOMContentLoaded', function(){
     var el = document.getElementById(id);
-    if(el) el.addEventListener('input', refresh);
+    if(el){
+      el.addEventListener('input', function(){
+        autoSaveDay();
+        refresh();
+      });
+    }
   });
 });
 
